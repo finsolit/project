@@ -88,7 +88,7 @@ class group():
     def __init__(self):
         self.tags=[]
         self.options=[]	
-        self.comands=[]	
+        self.comands=[1,1,1]	
 	 
 global groups,new_group,adminid
 adminid=0
