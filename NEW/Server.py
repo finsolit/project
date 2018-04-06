@@ -63,7 +63,7 @@ def stop(user_id,users):
 		
 def valuess(user_id,val,list_work,zz):
     connection = MySQLdb.connect(
-                    host = '127.0.0.1',
+                    host = '136.243.151.88',
                     user = 'cryptobot',
                     passwd = 'Mmo2zBF8Vcy98QwRsvVJ')  # create the connection
 
@@ -109,7 +109,7 @@ while True:
     time.sleep(5)
     now=[]
     connection = MySQLdb.connect(
-                host = '127.0.0.1',
+                host = '136.243.151.88',
                 user = 'cryptobot',
                 passwd = 'Mmo2zBF8Vcy98QwRsvVJ')  # create the connection
 
