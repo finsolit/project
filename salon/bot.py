@@ -8,11 +8,9 @@ import os
 import _thread
 import urllib
 import cherrypy
-TOKEN = '507631866:AAGof0Oa0NSH1lH5t-zxqXIUAgZKkgZzTk0'
-
-
-WEBHOOK_HOST = '185.86.76.249'
-WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
+TOKEN = '507631866:AAG6M_uboVpOF-FK4cpsLYgqBDtX4Rq2DvA'
+WEBHOOK_HOST = '95.46.98.126'
+WEBHOOK_PORT = 443  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Путь к сертификату
@@ -21,9 +19,12 @@ WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Путь к приватному кл
 WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "/%s/" % (TOKEN)
 
+
+arhiv_model=[]
+arhiv_procedur=[]
+arhiv_masterov=[]
+arhiv_otzivov=[]
 bot = telebot.TeleBot(TOKEN)
-
-
 
 class WebhookServer(object):
     @cherrypy.expose
@@ -39,15 +40,7 @@ class WebhookServer(object):
         else:
             raise cherrypy.HTTPError(403)
 			
-
-
-
-
-arhiv_model=[]
-arhiv_procedur=[]
-arhiv_masterov=[]
-arhiv_otzivov=[]
-bot = telebot.TeleBot(TOKEN)
+			
 admin_password='QWERTY123456!@#$%^'
 procedures=[]
 kat_proc=[]
@@ -61,7 +54,7 @@ input = open('arotz.pkl', 'rb')
 arhiv_otzivov = pickle.load(input)
 input.close()
 
-
+rassilka=''
 
 
 
@@ -150,7 +143,9 @@ def start(message):
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         button_phone = types.KeyboardButton(text="Отправить контакт", request_contact=True)
         keyboard.add(button_phone)
-        msg = bot.send_message(message.chat.id, 'Добро пожаловать! Пожалуйста, нажмите "Отправить контакт"',
+        msg = bot.send_message(message.chat.id, '👩 Привет!\n'
+        'Я - @cocopalmsalon, личный помощник салона красоты "Коко Пальм". Рад тебя приветствовать! \n'
+        'Для авторизации нажми, пожалуйста,  кнопку "Отправить мой номер".',
         reply_markup=keyboard,parse_mode='HTML')
         return()
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -557,7 +552,7 @@ def inline(c):
 		
 		
 def name(m):
-    global bdpol, admin, admin_addkat, admin_addproc, svazi,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change
+    global bdpol, admin, admin_addkat, admin_addproc, svazi,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change,rassilka
     if m.chat.id<0:
         return()
     k=nomer(m.chat.id)
@@ -590,12 +585,25 @@ def name(m):
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Архив заказов','Книга отзывов']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Процедуры','Связи процедур']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Шаблон поздравления ДР']])
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Рассылка']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Архив моделей','Список мастеров']])
             msg = bot.send_message(m.chat.id, 'Добро пожаловать в админ панель.',reply_markup=keyboard)
             bdpol[k].adminin=0			
         else:
             msg = bot.send_message(m.chat.id, 'Данные введены неверно')	
-            bdpol[k].adminin=0            
+            bdpol[k].adminin=0   
+########################## rassilka
+    if m.text=='Рассылка' and m.chat.id==admin:
+            rassilka=1
+            msg = bot.send_message(m.chat.id, 'Напишите сообщение для рассылки.')
+            return()
+    if rassilka==1 and m.chat.id==admin:
+            rassilka=''
+            for i in range(0,len(bdpol)):
+                if i%20 ==0:
+                    time.sleep(1)
+                msg = bot.send_message(bdpol[i].id, m.text)
+            msg = bot.send_message(m.chat.id, 'Сообщение отправлено всем пользователям')
 ##########################  Zapis na model       
     if m.text== 'Хочу быть моделью':
         keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -896,8 +904,11 @@ def check_chatid(message):
     k=nomer(message.chat.id)
     bdpol[k].regpoz=1
     bdpol[k].phone=str(message.contact.phone_number)
-    bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
-    msg = bot.send_message(message.chat.id, 'Спасибо, теперь укажите свою дату рождения в формате ДД.ММ')		   
+    try:
+        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+    except Exception:
+        bdpol[k].name=message.from_user.first_name
+    msg = bot.send_message(message.chat.id, 'Напиши свою дату рождения. Обещаю, я никому не скажу. Это будет нашим маленьким секретом😉 (укажите свою дату рождения в формате ДД.ММ)')		   
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
     output.close()
@@ -971,9 +982,6 @@ def lal():
         schedule.run_pending()
         time.sleep(1)
 _thread.start_new_thread(lal,())		
-
-
-
 
 
 bot.remove_webhook()
