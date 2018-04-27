@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 def sendmail(name,email,phone,komment,tripid): 
     fromaddr = "fine2113@gmail.com"
     mypass = "13sd0909"
-    toaddr = "surfinua@gmail.com"
+    toaddr = "fine2113@gmail.com"
  
     msg = MIMEMultipart()
     msg['From'] = fromaddr
