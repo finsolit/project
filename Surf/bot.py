@@ -44,6 +44,8 @@ class WebhookServer(object):
 
 
 
+
+
 arraypaidphone=[]
 arraypaidemail=[]
 wb = openpyxl.load_workbook(filename = '1.xlsx')
@@ -58,7 +60,7 @@ def  info(leng,strn):
     if bb==None:
         bb=''
     return str(bb)
-TOKEN = '500239333:AAEpjOsc00JC1_2cw_Kaq_--VIdv_QzSMTA'
+TOKEN = '507631866:AAHB0tjPBoeNXAABu9zAU7Zt4O8jbTgsZDE'
 
 bot = telebot.TeleBot(TOKEN)
 admin_password='QWERTY123456!@#$%^'
@@ -212,6 +214,9 @@ def inline(c):
         msg = bot.send_message(c.message.chat.id,tour(int(c.data[-1]),13),reply_markup=keyboard,parse_mode='HTML')
         return
     if c.data[:-1] in info(1,24):
+        if bdpol[k].shfr!='':
+             msg = bot.send_message(c.message.chat.id, info(1,26)+'\n'+tour(int(c.data[-1]),14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')
+             return			 
         if bdpol[k].email=='':
                         msg = bot.send_message(c.message.chat.id, info(1,25),parse_mode='HTML')
                         bdpol[k].email=10+int(c.data[-1])	
@@ -247,12 +252,11 @@ def inline(c):
         if bdpol[k].phone!='' and bdpol[k].name!='':
             bdpol[k].regpoz=3
             msg = bot.send_message(m.chat.id, info(1,53),parse_mode='HTML')   
-            return()
-        return()			
+            return()			
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         button_phone = types.KeyboardButton(text="Отправить контакт", request_contact=True)
         keyboard.add(button_phone)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,51),info(1,52)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,52)]])
         bdpol[k].regpoz=1
         bdpol[k].kudaedu=tour(int(c.data[-1]),16)
         msg = bot.send_message(c.message.chat.id, info(1,50),parse_mode='HTML',reply_markup=keyboard)
@@ -423,7 +427,7 @@ def name(m):
                         return()	
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,47),info(1,44)]])			
-        msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(len(bdpol[k].arrayreg))+'\n'+info(1,30)+str(bdpol[k].regprosh)+'\n'+info(1,32)+str(bdpol[k].phone)+'\n'+info(1,59)+str(bdpol[k].email))
+        msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(len(bdpol[k].arrayreg))+'\n'+info(1,30)+str(bdpol[k].regprosh)+'\n'+info(1,32)+str(bdpol[k].phone)+'\n'+info(1,59)+str(bdpol[k].email),reply_markup=keyboard)
     if bdpol[k].email!='':
         print('oh')
         try:
