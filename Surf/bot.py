@@ -16,7 +16,7 @@ global wb, wb1, sheet, sheet1
 global arraypaidphone, arraypaidemail
 TOKEN = '500239333:AAEpjOsc00JC1_2cw_Kaq_--VIdv_QzSMTA'
 WEBHOOK_HOST = '95.46.98.126'
-WEBHOOK_PORT = 443  # 443, 80, 88 или 8443 (порт должен быть открыт!)
+WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Путь к сертификату
