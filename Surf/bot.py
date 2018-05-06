@@ -217,9 +217,12 @@ def inline(c):
         if bdpol[k].shfr!='':
              msg = bot.send_message(c.message.chat.id, info(1,26)+'\n'+tour(int(c.data[-1]),14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')
              return			 
-        if bdpol[k].email=='':
-                        msg = bot.send_message(c.message.chat.id, info(1,25),parse_mode='HTML')
-                        bdpol[k].email=10+int(c.data[-1])	
+        if bdpol[k].phone=='':
+                        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+                        button_phone = types.KeyboardButton(text="Отправить контакт", request_contact=True)
+                        keyboard.add(button_phone)
+                        bdpol[k].phone='2'+c.data[-1]
+                        msg = bot.send_message(c.message.chat.id, info(1,25),parse_mode='HTML',reply_markup=keyboard)	
                         return()
         else:
              msg = bot.send_message(c.message.chat.id, info(1,26)+'\n'+tour(int(c.data[-1]),14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')		
@@ -362,12 +365,12 @@ def name(m):
         msg = bot.send_message(m.chat.id, info(1,57),parse_mode='HTML')	
         return()	
 ################################ Ruchnoi vvod telefona
-    if bdpol[k].phone1==1 and m.text != "Отправить контакт":
-        bdpol[k].phone1=m.text
-        bdpol[k].shfr=refrand()	
-        keyboard = types.InlineKeyboardMarkup(row_width=1)	
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,31),info(1,47),info(1,44)]])
-        msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone1),reply_markup=keyboard,parse_mode='HTML')	 		
+    #if bdpol[k].phone1==1 and m.text != "Отправить контакт":
+        #bdpol[k].phone1=m.text
+        #bdpol[k].shfr=refrand()	
+        #keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        #keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,31),info(1,47),info(1,44)]])
+        #msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone1),reply_markup=keyboard,parse_mode='HTML')	 		
 ############################## ADMIN COMADNI
     if m.text=='Изменить тексты':
         if bdpol[k].id==admin:
@@ -553,6 +556,15 @@ def check_chatid(message):
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,47),info(1,44)]])
         msg = bot.send_message(message.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone),reply_markup=keyboard,parse_mode='HTML')	
+    if bdpol[k].phone[0]=='2':
+        tour_num=int(bdpol[k].phone[1:])	
+        bdpol[k].phone=str(message.contact.phone_number)
+        bdpol[k].shfr=refrand()	
+        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,13)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,2), info(1,3),'Бонусы']])
+        msg = bot.send_message(message.chat.id, info(1,26)+'\n'+tour(tour_num,14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')        	
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
     output.close()
