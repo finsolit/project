@@ -1,14 +1,16 @@
 ﻿import openpyxl
 import time
 import telebot
+import schedule
 import os
 import urllib
+import _thread
 from telebot import types
 import _pickle as pickle
 import requests
 import json
 import buttons_create
-import cherrypy
+import db
 wb = openpyxl.load_workbook(filename = 'leng.xlsx')
 sheet = wb['test']
 val = sheet.cell(row=1, column=1)
@@ -17,8 +19,11 @@ def  lengstr(leng,strn):
     bb=sheet.cell(row=strn, column=leng).value
     return str(bb)
 TOKEN = '542861615:AAHTulSblaB0kdVUk44nxobpm2C6sxzeegA'
-WEBHOOK_HOST = ' 	95.46.98.28 '
-WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
+
+import cherrypy
+
+WEBHOOK_HOST = '185.86.76.249'
+WEBHOOK_PORT = 443  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Путь к сертификату
@@ -29,6 +34,20 @@ WEBHOOK_URL_PATH = "/%s/" % (TOKEN)
 
 #ТУТ БОТ
 bot = telebot.TeleBot(TOKEN)
+
+class WebhookServer(object):
+    @cherrypy.expose
+    def index(self):
+        if 'content-length' in cherrypy.request.headers and \
+                        'content-type' in cherrypy.request.headers and \
+                        cherrypy.request.headers['content-type'] == 'application/json':
+            length = int(cherrypy.request.headers['content-length'])
+            json_string = cherrypy.request.body.read(length).decode("utf-8")
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+            return ''
+        else:
+            raise cherrypy.HTTPError(403)
 
 class trick():
     name=''
@@ -57,9 +76,10 @@ class userobj():
 admin=0
 new_trick=''
 admin_pass='fisher_out_mark'
-global bdpol,admin_addkat,admin_chkat	
+global bdpol,admin_addkat,admin_chkat,admin_add_qst	
 bdpol=[]
 admin_addkat=0
+admin_add_qst=0
 admin_chkat=-1
 def nomer(b):
     global bdpol
@@ -87,10 +107,11 @@ input = open('bdpol.pkl', 'rb')
 bdpol = pickle.load(input)
 input.close()			
 			
+					
 			
-			
-			
-			
+input = open('admin.pkl', 'rb')
+admin = pickle.load(input)
+input.close()				
 			
 # Handle '/start' and '/help'
 @bot.message_handler(commands=['help', 'start'])
@@ -145,7 +166,7 @@ def repeat_all_messages(message):
 	
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
-    global bdpol, admin,admin_addkat,kategories_name,kategories, admin_chkat, new_trick
+    global bdpol, admin,admin_addkat,kategories_name,kategories, admin_chkat, new_trick, admin_add_qst
     k=nomer(c.message.chat.id)
     ll=bdpol[k].leng
     bib=c.message.message_id
@@ -294,6 +315,11 @@ def inline(c):
         msg = bot.send_message(c.message.chat.id,chek_trick.text_body,reply_markup=keyboard)	
 ####################################### zakritie tripa
     if 'zakrit' in c.data:
+        if bdpol[k].free_tricks==0:
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='goopr') for name in [lengstr(ll,35)]])
+            msg=bot.send_message(c.message.chat.id, lengstr(ll,34),reply_markup=keyboard)
+            return
         for i in range(0,len(c.data)):
             if c.data[i]==':':
                 trik_tag=int(c.data[6:i])
@@ -332,6 +358,33 @@ def inline(c):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='otkrit'+str(trik_tag)+':'+str(trik_num)) for name in [lengstr(ll,10)]])	
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='nextrk'+str(trik_tag)+':'+str(trik_num+1)) for name in [lengstr(ll,14)]])		
         msg =bot.send_photo(c.message.chat.id, open(chek_trick.photo_url, 'rb'),caption=chek_trick.text_head,reply_markup=keyboard) 
+####################################### dobavlenie voprosa v opros
+    if c.data=='addqst':
+        msg=bot.send_message(c.message.chat.id,'Введите сообщение для опроса')
+        admin_add_qst=1
+####################################### udalenie voprosa
+    if c.data=='delqst':
+        gg=db.ask_question()
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        s1=''
+        for i in range(0,len(gg)):
+            s1+=str(i+1)+') '+gg[i]+'\n' 
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='dlqst'+str(i)) for name in [str(i+1)]]) 
+        msg=bot.send_message(c.message.chat.id,'Ввыберите какое сообщение удалить?\n'+s1,reply_markup=keyboard)
+####################################### udalenie voprosa
+    if 'dlqst' in c.data:
+        qst_num=int(c.data[5:])  
+        gg=db.ask_question()
+        gg_str=gg[qst_num]	
+        db.del_question(gg_str)	
+        gg=db.ask_question()
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        s1=''
+        for i in range(0,len(gg)):
+            s1+=str(i+1)+') '+gg[i]+'\n' 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addqst') for name in ['Добавить вопрос']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='delqst') for name in ['Удалить вопрос']])          
+        msg = bot.send_message(c.message.chat.id, 'Вопрос удален:\n'+s1,reply_markup=keyboard)          		
 ####################################### menu polzovatela
 ####################################### dobavlenie nomera telefona
     if c.data== lengstr(ll,21): 
@@ -339,7 +392,32 @@ def inline(c):
              button_phone = types.KeyboardButton(text=lengstr(ll,30), request_contact=True)
              keyboard.add(button_phone)
              keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,32)]])
-             msg=bot.send_message(c.message.chat.id, lengstr(ll,29),reply_markup=keyboard)       
+             msg=bot.send_message(c.message.chat.id, lengstr(ll,29),reply_markup=keyboard)  
+####################################### opros
+    if c.data=='goopr':
+            ff=0
+            ss=db.ask_question()
+            if len(ss)>0:
+                keyboard = types.InlineKeyboardMarkup(row_width=1)
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='reopr'+str(ff+1)+':+') for name in [lengstr(ll,17)]])
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='reopr'+str(ff+1)+':-') for name in [lengstr(ll,18)]])
+                msg=bot.send_message(c.message.chat.id, ss[0],reply_markup=keyboard) 
+            else:
+                proshel_opros(c.message.chat.id)
+    if 'reopr' in c.data:	
+        for i in range(0,len(c.data)):
+            if c.data[i]==':':
+                trik_tag=int(c.data[5:i])
+        ff=int(trik_tag)
+        ss=db.ask_question()
+        db.bid_response(ss[ff-1],c.data[-1])
+        if len(ss)>ff:
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='reopr'+str(ff+1)+':+') for name in [lengstr(ll,17)]])
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='reopr'+str(ff+1)+':-') for name in [lengstr(ll,18)]])
+            msg=bot.send_message(c.message.chat.id, ss[ff],reply_markup=keyboard) 
+        else:
+            proshel_opros(c.message.chat.id)		
 #######################################	
     if c.data== lengstr(ll,22):		
             msg=bot.send_message(c.message.chat.id, lengstr(ll,27))		
@@ -354,9 +432,24 @@ def inline(c):
     return		
 		
 		
-		
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
 def name(m):
-    global bdpol, admin,admin_addkat,kategories_name,kategories, admin_chkat, new_trick
+    global bdpol, admin,admin_addkat,kategories_name,kategories, admin_chkat, new_trick, admin_add_qst
     k=nomer(m.chat.id)
     ll=bdpol[k].leng
     if bdpol[k].adminin==1:
@@ -369,9 +462,22 @@ def name(m):
             msg = bot.send_message(m.chat.id,lengstr(ll,6) ,reply_markup=keyboard)
             bdpol[k].adminin=0
             admin=m.chat.id
+            output = open('admin.pkl', 'wb')
+            pickle.dump(admin, output, 2)   
+            output.close()	
         else:
             bdpol[k].adminin=0
             msg = bot.send_message(m.chat.id,'Пароль введен неверно' )
+#################################### opros
+    if m.text=='Редакция опроса':
+        gg=db.ask_question()
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        s1=''
+        for i in range(0,len(gg)):
+            s1+=str(i+1)+') '+gg[i]+'\n' 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addqst') for name in ['Добавить вопрос']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='delqst') for name in ['Удалить вопрос']])          
+        msg = bot.send_message(m.chat.id, 'Вопросы:\n'+s1,reply_markup=keyboard)        
 ############################################## upravlenie categoriami
     if m.text=='Управление категориями' and admin==m.chat.id:
         output = open('name.pkl', 'wb')
@@ -475,10 +581,34 @@ def name(m):
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,21),lengstr(ll,22),lengstr(ll,23),lengstr(ll,24)]]) 
             msg=bot.send_message(m.chat.id, lengstr(ll,20),reply_markup=keyboard)
+##################################### dobavlenie voprosa
+    if admin==m.chat.id and admin_add_qst==1:
+        admin_add_qst=0
+        db.add_question(m.text)
+        gg=db.ask_question()
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        s1=''
+        for i in range(0,len(gg)):
+            
+            s1+=str(i+1)+') '+gg[i]+'\n' 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addqst') for name in ['Добавить вопрос']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='delqst') for name in ['Удалить вопрос']])          
+        msg = bot.send_message(m.chat.id, 'Вопросы:\n'+s1,reply_markup=keyboard)   
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)   
     output.close()
-    			
+  
+
+
+
+
+######################################## proshel opros
+
+def proshel_opros(id):
+    global bdpol
+    k=nomer(id) 
+    bdpol[k].free_tricks+=5
+    msg	= bot.send_message(id, lengstr(ll,36))
 		
 ######################################## zagruzka photo na server
 @bot.message_handler(content_types=['photo'])
@@ -511,24 +641,21 @@ def check_chatid(message):
     keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,22),lengstr(ll,23),lengstr(ll,24),lengstr(ll,25),lengstr(ll,26)]])
     msg = bot.send_message(message.chat.id,lengstr(ll,20) ,reply_markup=keyboard)
 
-		
-############################################ Hvost	
-class WebhookServer(object):
-    @cherrypy.expose
-    def index(self):
-        if 'content-length' in cherrypy.request.headers and \
-                        'content-type' in cherrypy.request.headers and \
-                        cherrypy.request.headers['content-type'] == 'application/json':
-            length = int(cherrypy.request.headers['content-length'])
-            json_string = cherrypy.request.body.read(length).decode("utf-8")
-            update = telebot.types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-            return ''
-        else:
-            raise cherrypy.HTTPError(403)
-			
-			
+############################################ potok
+def proverk():
+    global bdpol
+    for i in range(0,len(bdpol)):
+        bdpol[i].day=3	
 
+
+
+schedule.every().day.at("7:00").do(proverk)
+def lal():
+    while 1:
+        schedule.run_pending()
+        time.sleep(1)
+_thread.start_new_thread(lal,())		
+############################################ Hvost	
 
 bot.remove_webhook()
 
