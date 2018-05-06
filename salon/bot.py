@@ -1,6 +1,7 @@
 ﻿import telebot
 import time
 import datetime
+from datetime import datetime
 import schedule
 from telebot import types
 import _pickle as pickle
@@ -19,11 +20,6 @@ WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Путь к приватному кл
 WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "/%s/" % (TOKEN)
 
-
-arhiv_model=[]
-arhiv_procedur=[]
-arhiv_masterov=[]
-arhiv_otzivov=[]
 bot = telebot.TeleBot(TOKEN)
 
 class WebhookServer(object):
@@ -39,8 +35,12 @@ class WebhookServer(object):
             return ''
         else:
             raise cherrypy.HTTPError(403)
-			
-			
+
+arhiv_model=[]
+arhiv_procedur=[]
+arhiv_masterov=[]
+arhiv_otzivov=[]
+admin_addphoto=''
 admin_password='QWERTY123456!@#$%^'
 procedures=[]
 kat_proc=[]
@@ -55,8 +55,10 @@ arhiv_otzivov = pickle.load(input)
 input.close()
 
 rassilka=''
-
-
+arhiv_photo=[]
+input = open('arhiv_photo.pkl', 'rb')
+arhiv_photo = pickle.load(input)
+input.close()
 
 
 input = open('arproc.pkl', 'rb')
@@ -73,6 +75,11 @@ input.close()
 input = open('armas.pkl', 'rb')
 arhiv_masterov = pickle.load(input)
 input.close()
+
+input = open('bdpol.pkl', 'rb')
+bdpol = pickle.load(input)
+input.close()
+
 class svaz():
     from_kat=0
     from_proc=0
@@ -177,7 +184,7 @@ def repeat_all_messages(message):
 	
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
-    global bdpol, admin, admin_addkat, admin_addproc, svazi, new_svaz,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change
+    global bdpol, admin, admin_addkat, admin_addproc, svazi, new_svaz,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change, arhiv_photo, admin_addphoto
     bib=c.message.message_id
     if c.message.chat.id<0:
         return()
@@ -241,29 +248,109 @@ def inline(c):
     if c.data[0]=='$':
         papka=c.data[1:5]
         nomers=c.data[5:]
+        print(nomers)
         if papka == 'make':
-           max=10
+           ss=0
+           max=len(arhiv_photo[0])
         if papka == 'nogt':
-           max=17
+           ss=1
+           max=len(arhiv_photo[1])
         if papka == 'okra':
-           max=20
+           ss=2
+           max=len(arhiv_photo[2])
         if papka == 'tatj':
-           max=17
+           ss=3
+           max=len(arhiv_photo[3])
         if papka == 'tatu':
-           max=17
+           ss=4
+           max=len(arhiv_photo[4])
         if papka == 'zubi':
-           max=3	
+           ss=5
+           max=len(arhiv_photo[5])
+        if int(nomers)>=max:
+            nomers=str(0)		   
         if int(nomers) <0:
-            nomers=str(max)
-        if int(nomers)>max:
-            nomers=str(0)				
+            nomers=str(max-1)				
         mnomer=str(int(nomers)-1)	
         pnomer=str(int(nomers)+1)		
         msg = bot.delete_message(c.message.chat.id, bib)
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         keyboard.add(types.InlineKeyboardButton(text='⬅️',callback_data='$'+papka+mnomer),types.InlineKeyboardButton(text='➡',callback_data='$'+papka+pnomer))   
-        msg = bot.send_photo(c.message.chat.id, photo=open(papka+'/'+nomers+'.jpg', 'rb'),reply_markup=keyboard) 
+        msg = bot.send_photo(c.message.chat.id, photo=open(papka+'/'+arhiv_photo[ss][int(nomers)], 'rb'),reply_markup=keyboard) 
+############################# portfolio admina
+    if c.data[0]=='^':
+        papka=c.data[1:5]
+        nomers=c.data[5:]
+        print(nomers)
+        if papka == 'make':
+           ss=0
+           max=len(arhiv_photo[0])
+        if papka == 'nogt':
+           ss=1
+           max=len(arhiv_photo[1])
+        if papka == 'okra':
+           ss=2
+           max=len(arhiv_photo[2])
+        if papka == 'tatj':
+           ss=3
+           max=len(arhiv_photo[3])
+        if papka == 'tatu':
+           ss=4
+           max=len(arhiv_photo[4])
+        if papka == 'zubi':
+           ss=5
+           max=len(arhiv_photo[5])
+        if int(nomers)>=max:
+            nomers=str(0)		   
+        if int(nomers) <0:
+            nomers=str(max-1)				
+        mnomer=str(int(nomers)-1)	
+        pnomer=str(int(nomers)+1)		
+        msg = bot.delete_message(c.message.chat.id, bib)
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(types.InlineKeyboardButton(text='⬅️',callback_data='^'+papka+mnomer),types.InlineKeyboardButton(text='➡',callback_data='^'+papka+pnomer)) 
+        keyboard.add(types.InlineKeyboardButton(text='Удалить фото',callback_data='delphoto'+papka+nomers))
+        keyboard.add(types.InlineKeyboardButton(text='Добавить фото',callback_data='addphoto'+papka))		
+        msg = bot.send_photo(c.message.chat.id, photo=open(papka+'/'+arhiv_photo[ss][int(nomers)], 'rb'),reply_markup=keyboard) 
+############################# udalenie photo iz arhiva
 
+    if 'delphoto' in c.data:
+        papka=c.data[8:12]
+        nomers=c.data[12:]
+        if papka == 'make':
+           del arhiv_photo[0][int(nomers)]
+        if papka == 'nogt':
+           del arhiv_photo[1][int(nomers)]
+        if papka == 'okra':
+           del arhiv_photo[2][int(nomers)]
+        if papka == 'tatj':
+           del arhiv_photo[3][int(nomers)]
+        if papka == 'tatu':
+           del arhiv_photo[4][int(nomers)]
+        if papka == 'zubi':
+           del arhiv_photo[5][int(nomers)]    
+        msg = bot.delete_message(c.message.chat.id, bib)	
+        output = open('arhiv_photo.pkl', 'wb')
+        pickle.dump(arhiv_photo, output, 2)
+        output.close()		
+        msg = bot.send_message(c.message.chat.id, 'Фото удалено')
+############################# dobavlenie_photo
+    if 'addphoto' in c.data:
+        papka=c.data[8:]
+        if papka == 'make':
+           admin_addphoto=0
+        if papka == 'nogt':
+           admin_addphoto=1
+        if papka == 'okra':
+           admin_addphoto=2
+        if papka == 'tatj':
+           admin_addphoto=3
+        if papka == 'tatu':
+           admin_addphoto=4
+        if papka == 'zubi':
+           admin_addphoto=5   
+        msg = bot.delete_message(c.message.chat.id, bib)		
+        msg = bot.send_message(c.message.chat.id, 'Отправте фото для добавления.') 
 ############################# dobavlenie kategorii procedur
     if c.data=='addkat':
         msg = bot.send_message(c.message.chat.id, 'Введите название категории(Не более 30 символов)')	
@@ -552,7 +639,7 @@ def inline(c):
 		
 		
 def name(m):
-    global bdpol, admin, admin_addkat, admin_addproc, svazi,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change,rassilka
+    global bdpol, admin, admin_addkat, admin_addproc, svazi,arhiv_procedur, admin_addmast, admin_username,birthday_grac,bith_change,rassilka, arhiv_photo
     if m.chat.id<0:
         return()
     k=nomer(m.chat.id)
@@ -585,7 +672,7 @@ def name(m):
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Архив заказов','Книга отзывов']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Процедуры','Связи процедур']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Шаблон поздравления ДР']])
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Рассылка']])
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Рассылка','Портфолио']])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Архив моделей','Список мастеров']])
             msg = bot.send_message(m.chat.id, 'Добро пожаловать в админ панель.',reply_markup=keyboard)
             bdpol[k].adminin=0			
@@ -695,6 +782,17 @@ def name(m):
                     break
         else:
             msg = bot.send_message(m.chat.id, arhiv_model[-1],reply_markup=keyboard) 
+######################### portfolio admina
+    if m.text=='Портфолио' and m.chat.id==admin:
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^okra0') for name in ['Окрашивание']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^nogt0') for name in ['Ногти']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^make0') for name in ['Макияж']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^tatu0') for name in ['Тату']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^tatj0') for name in ['Татуаж']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='^zubi0') for name in ['Отбеливание зубов']])
+        msg = bot.send_message(m.chat.id, 'Выберите портфолио',reply_markup=keyboard) 	
+        return
 #########################  Prosmotr portfolio
     if m.text=='Портфолио':
         keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -704,7 +802,7 @@ def name(m):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='$tatu0') for name in ['Тату']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='$tatj0') for name in ['Татуаж']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='$zubi0') for name in ['Отбеливание зубов']])
-        msg = bot.send_message(m.chat.id, 'Выберите портфолио',reply_markup=keyboard)         	
+        msg = bot.send_message(m.chat.id, 'Выберите портфолио',reply_markup=keyboard) 		
 ######################### Kategorii procedur admin
     if m.text=='Процедуры' and admin==m.chat.id:
         keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -885,7 +983,10 @@ def name(m):
         msg=bot.send_message(m.chat.id,'На данный момент поздравление таково: \n'+birthday_grac+'\nПоменять его?',reply_markup=keyboard) 
     if bith_change==1 and        m.chat.id==admin:
         birthday_grac=m.text
-        msg=bot.send_message(m.chat.id,'Поздравление заменено на: \n'+birthday_grac)        	
+        msg=bot.send_message(m.chat.id,'Поздравление заменено на: \n'+birthday_grac)  
+    output = open('bdpol.pkl', 'wb')
+    pickle.dump(bdpol, output, 2)   
+    output.close()      	
     		
 		
 		
@@ -904,10 +1005,7 @@ def check_chatid(message):
     k=nomer(message.chat.id)
     bdpol[k].regpoz=1
     bdpol[k].phone=str(message.contact.phone_number)
-    try:
-        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
-    except Exception:
-        bdpol[k].name=message.from_user.first_name
+    bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
     msg = bot.send_message(message.chat.id, 'Напиши свою дату рождения. Обещаю, я никому не скажу. Это будет нашим маленьким секретом😉 (укажите свою дату рождения в формате ДД.ММ)')		   
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
@@ -917,6 +1015,7 @@ def check_chatid(message):
 ########################################### otpravka foto
 @bot.message_handler(content_types=['photo'])
 def photoget(message):
+    global admin_addphoto
     k=nomer(message.chat.id)
     if bdpol[k].model==5:
         print(message)	
@@ -955,6 +1054,38 @@ def photoget(message):
         output = open('armod.pkl', 'wb')
         pickle.dump(arhiv_model, output, 2)
         output.close()
+    if admin_addphoto!='' and message.chat.id==admin:
+        nom=admin_addphoto
+        admin_addphoto=''
+		
+        if nom==0:
+            papka='make'
+        if nom==1:
+            papka='nogt'
+        if nom==2:
+            papka='okra'
+        if nom==3:
+            papka='tatj'
+        if nom==4:
+            papka='tatu'
+        if nom==5:
+            papka='zubi'
+ 
+		
+		
+        nk=str(int(time.time()))
+        fileid=(message.photo[2].file_id)
+        bb=bot.get_file(fileid)
+        bb=bb.file_path
+        logo = urllib.request.urlopen("https://api.telegram.org/file/bot"+TOKEN+"/"+bb).read()
+        f = open(papka+"/"+nk+'.jpg', "wb")
+        f.write(logo)
+        f.close() 
+        arhiv_photo[nom].append(nk+'.jpg')	
+        msg = bot.send_message(message.chat.id, 'Фото добавлено')	
+        output = open('arhiv_photo.pkl', 'wb')
+        pickle.dump(arhiv_photo, output, 2)
+        output.close()			
 ############################################################### Hvost
 	
 def proverk():
@@ -982,6 +1113,7 @@ def lal():
         schedule.run_pending()
         time.sleep(1)
 _thread.start_new_thread(lal,())		
+
 
 
 bot.remove_webhook()
