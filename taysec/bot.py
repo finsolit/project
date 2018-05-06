@@ -18,11 +18,11 @@ print(val.value)
 def  lengstr(leng,strn):
     bb=sheet.cell(row=strn, column=leng).value
     return str(bb)
-TOKEN = '542861615:AAHTulSblaB0kdVUk44nxobpm2C6sxzeegA'
+TOKEN = '568414626:AAHW8oIBMgxf-Nsk7tIF3fSUH3nZBjrFJuA'
 
 import cherrypy
 
-WEBHOOK_HOST = '185.86.76.249'
+WEBHOOK_HOST = '95.46.98.28'
 WEBHOOK_PORT = 443  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
@@ -417,7 +417,17 @@ def inline(c):
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='reopr'+str(ff+1)+':-') for name in [lengstr(ll,18)]])
             msg=bot.send_message(c.message.chat.id, ss[ff],reply_markup=keyboard) 
         else:
-            proshel_opros(c.message.chat.id)		
+            proshel_opros(c.message.chat.id)
+    if c.data=='noklava':
+            kategories[new_trick.kategory].append(new_trick)
+            trik_tag=int(new_trick.kategory)
+            new_trick=''
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(kategories[trik_tag])):
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='adtri'+str(trik_tag)+':'+str(i)) for name in [kategories[trik_tag][i].name]])        
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addtrk'+str(trik_tag)) for name in ['Добавить ТрипТрик']])
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='deltrk'+str(trik_tag)) for name in ['Удалить ТрипТрик']])
+            msg = bot.send_message(c.message.chat.id, 'ТрипТрик создан нажмите на него для просмотра и изменения настроек.',reply_markup=keyboard)	
 #######################################	
     if c.data== lengstr(ll,22):		
             msg=bot.send_message(c.message.chat.id, lengstr(ll,27))		
@@ -488,7 +498,7 @@ def name(m):
         output.close()
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         for i in range(0,len(kategories_name)):
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='adkat'+str(i)) for name in [kategories_name[i]]]) 
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='Ж') for name in [kategories_name[i]]]) 
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addkat') for name in ['Добавить категорию']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='delkat') for name in ['Удалить категорию']])          
         msg = bot.send_message(m.chat.id, 'Выберите категорию трип триков что-бы изменить ее название.',reply_markup=keyboard)
@@ -522,10 +532,10 @@ def name(m):
             admin_chkat=-1
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         for i in range(0,len(kategories_name)):
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='adkat'+str(i)) for name in [kategories_name[i]]])        
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='Ж') for name in [kategories_name[i]]])        
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addkat') for name in ['Добавить категорию']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='delkat') for name in ['Удалить категорию']])        
-        msg = bot.send_message(m.chat.id, 'Категория добавлена.',reply_markup=keyboard)  
+        msg = bot.send_message(m.chat.id, 'Категория изменена.',reply_markup=keyboard)  
 ########################################## sozdanie novogo trip trika
     if new_trick!='':
         if 	new_trick!='' and new_trick.name=='' and m.chat.id==admin:
@@ -538,7 +548,9 @@ def name(m):
             return	
         if 	new_trick.photo_url!='' and new_trick.text_body=='' and admin==m.chat.id:
             new_trick.text_body=m.text
-            msg = bot.send_message(m.chat.id, lengstr(ll,100))
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='noklava') for name in ['Не добавлять клавиатуру']])
+            msg = bot.send_message(m.chat.id, lengstr(ll,100),reply_markup=keyboard)
             return	
         if 	new_trick.text_body!='' and len(new_trick.buttons)==0 and admin==m.chat.id:
             buttons_take=	buttons_create.buttons(m.text)				
