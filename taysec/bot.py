@@ -130,6 +130,11 @@ def start(message):
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,3)]])
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,4)]])
             msg = bot.send_message(message.chat.id,lengstr(ll,7) ,reply_markup=keyboard)
+            if hash==admin:
+                admin_addkat=0
+                admin_add_qst=0
+                admin_chkat=-1
+                new_trick=''
             return
     if z==0:
         bdpol.append(userobj())
@@ -438,7 +443,9 @@ def inline(c):
     if c.data== lengstr(ll,25):		
             msg=bot.send_message(c.message.chat.id, lengstr(ll,27))
     if c.data== lengstr(ll,26):		
-            msg=bot.send_message(c.message.chat.id, lengstr(ll,27))			
+            msg=bot.send_message(c.message.chat.id, lengstr(ll,27))	
+    if c.data=='Отменить вход':
+            bdpol[k].adminin=0	
     return		
 		
 		
@@ -476,8 +483,9 @@ def name(m):
             pickle.dump(admin, output, 2)   
             output.close()	
         else:
-            bdpol[k].adminin=0
-            msg = bot.send_message(m.chat.id,'Пароль введен неверно' )
+            keyboard = types.InlineKeyboardMarkup(row_width=1)            
+            msg = bot.send_message(m.chat.id,'Пароль введен неверно, введите его еще раз.' )
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Отменить вход']])
 #################################### opros
     if m.text=='Редакция опроса':
         gg=db.ask_question()
