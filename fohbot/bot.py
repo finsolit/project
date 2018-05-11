@@ -9,6 +9,7 @@ import sqlite3
 import schedule
 import buttons_create
 import json
+import struct
 import _pickle as pickle
 from telebot import types
 import cherrypy
@@ -63,6 +64,7 @@ class post():
     add_type=''
     pin=0
     mut=0
+    saved=0
     delete_time=0
     forse_time=0
     def __init__(self):
@@ -72,7 +74,9 @@ class post():
 
 
 global add_channel, add_post, add_post_array,posts,change_post
-posts=0
+input = open('posts.pkl', 'rb')
+posts = pickle.load(input)
+input.close()
 add_channel=[]
 add_post=[]
 add_post_array=[]
@@ -100,7 +104,7 @@ def inline(c):
     ll=1
     bib=c.message.message_id
 ################################## reakcii
-    if 'react' in c.data:
+    if 'roact' in c.data:
         for i in range(0,len(c.data)):
             if c.data[i]==':':
                 num=int(c.data[5:i])
@@ -142,6 +146,9 @@ def inline(c):
         add_post_array[-1].channel_id=int(c.data[:-1])
         add_post_array[-1].post_id=int(posts) 
         posts+=1
+        output = open('posts.pkl', 'wb')
+        pickle.dump(posts, output, 2)
+        output.close() 
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'!') for name in ['Назад к каналу']])
         msg =bot.send_message(c.message.chat.id, lengstr(ll,12),reply_markup=keyboard) 
@@ -154,6 +161,8 @@ def inline(c):
             a=0
         for i in range(0,len(add_post_array)):
             if 	add_post_array[i].user_id==c.message.chat.id:
+                if add_post_array[i].saved==0:
+                    os.remove("documents/"+add_post_array[i].document)
                 del add_post_array[i]
         channel_id=c.data[:-1]
         channel_name=chan_name_func(channel_id)
@@ -165,6 +174,92 @@ def inline(c):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'*') for name in ['Настройки']])
         msg =bot.send_message(c.message.chat.id, channel_name,reply_markup=keyboard)  
         return
+################################# spisok publikaci
+    if c.data[-1]=='@':
+        channel_id=int(c.data[:-1])	
+        pos=post_in_channel(channel_id)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        msg = bot.delete_message(c.message.chat.id, bib)
+        for i in range(0,len(pos)):
+            dd=pos[i][4]
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='selpost'+str(pos[i][0])) for name in [str(dd)]])     
+        msg =bot.send_message(c.message.chat.id, 'Список постов у канала:',reply_markup=keyboard) 
+        return		
+################################# Просмотр сохраненного поста
+    if 'selpost' in c.data:
+        inm=c.data[7:]
+        obj=select_from_saved(inm)
+        channel_id=obj.channel_id
+        post_id=obj.post_id
+        msg = bot.delete_message(c.message.chat.id, bib)
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(types.InlineKeyboardButton(text='Редактировать',callback_data='selred'+str(post_id)),
+        types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'l'),
+        types.InlineKeyboardButton(text='Опубликовать',callback_data='selopl'+str(post_id)),
+        types.InlineKeyboardButton(text='Запланировать',callback_data=str(post_id)+'l'),
+        types.InlineKeyboardButton(text='Назад к списку постов',callback_data=str(channel_id)+'@'))
+        if 	obj.document_type=='':				
+            msg =bot.send_message(c.message.chat.id, obj.text,reply_markup=keyboard)
+        if  obj.document_type=='photo':
+            msg =bot.send_photo(c.message.chat.id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard)                    
+        if  obj.document_type=='audio':
+            msg =bot.send_audio(c.message.chat.id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard)
+        if  obj.document_type=='video':
+            msg =bot.send_video(c.message.chat.id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard)
+        if  obj.document_type=='document':
+            msg =bot.send_document(c.message.chat.id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard)
+   
+        return
+################################
+    if 'selopl' in c.data:
+        inm=c.data[6:]
+        obj=select_from_saved(inm)
+        channel_id=obj.channel_id
+        post_id=obj.post_id 
+        keyboard = types.InlineKeyboardMarkup()
+        for z in range(0,len(obj.buttons_url)):
+            print(obj.buttons[z],obj.buttons_url[z])
+            url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
+            keyboard.add(url_button)
+        if len(obj.reactions)>0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])
+            			
+        if 	obj.mut==1:
+            mut=True
+        else:
+            mut=False	
+        if 	obj.document_type=='':				
+            msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut)
+        if  obj.document_type=='photo':
+            msg =bot.send_photo(obj.channel_id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
+        if  obj.document_type=='audio':
+            msg =bot.send_audio(obj.channel_id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+        if  obj.document_type=='video':
+            msg =bot.send_video(obj.channel_id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+        if  obj.document_type=='document':
+            msg =bot.send_document(obj.channel_id, open('documents/'+obj.document, 'rb'),caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+   
+        joy=msg.message_id
+        if len(obj.reactions)>0:
+            add_reactions(obj.channel_id,joy,obj.reactions)
+        if obj.delete_time>0:
+            add_delete_func(joy,obj.channel_id,obj.delete_time)                
+        if 	obj.pin==1:
+            msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)
+        if obj.saved==0:
+                    os.remove("documents/"+obj.document)
+        return					
+################################# redaktirovanie sohranennogo posta
+    if 'selred'	in c.data:
+        inm=c.data[6:]
+        obj=select_from_saved(inm)
+        add_post.append(c.message.chat.id)
+        add_post_array.append(obj)   
+        keyboard=kukoard(obj.post_id,obj.channel_id)
+        msg = bot.delete_message(c.message.chat.id, bib)
+        msg =bot.send_message(c.message.chat.id, lengstr(ll,13),reply_markup=keyboard) 
+        return	
+################################# zaplanirovat		
 ################################# publikacia posta
     if c.data[-1]=='o':
         for i in range(0,len(add_post_array)):
@@ -181,7 +276,7 @@ def inline(c):
                     url_button = types.InlineKeyboardButton(text=add_post_array[i].buttons[z], url=add_post_array[i].buttons_url[z])
                     keyboard.add(url_button)
                 if len(add_post_array[i].reactions)>0:
-                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='react'+str(i)+':'+name) for name in add_post_array[i].reactions])   
+                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])   
                 if 	add_post_array[i].mut==1:
                     mut=True
                 else:
@@ -354,6 +449,8 @@ def inline(c):
         for i in range(0,len(add_post_array)):
             if 	add_post_array[i].post_id==int(c.data[:-1]):
                 msg = bot.delete_message(c.message.chat.id, bib)
+                if obj.saved==0:
+                    os.remove("documents/"+add_post_array[i].document)
                 add_post_array[i].reactions=[]
                 add_post_array[i].buttons=[]
                 add_post_array[i].buttons_url=[]
@@ -366,9 +463,46 @@ def inline(c):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'!') for name in ['Назад к каналу']])
                 msg =bot.send_message(c.message.chat.id, lengstr(ll,12),reply_markup=keyboard) 
                 return
+################################### sohranenie posta
+    if c.data[-1]=='s':
+        for i in range(0,len(add_post_array)):
+            if 	add_post_array[i].post_id==int(c.data[:-1]):
+                    if add_post_array[i].saved==1:
+                        msg =bot.answer_callback_query(c.id,'Этот пост уже сохранен')					         
+                        return	                        
+                    add_post_array[i].saved=1
+                    save_post(add_post_array[i].post_id,c.message.chat.id,add_post_array[i].channel_id,add_post_array[i])
+                    msg =bot.answer_callback_query(c.id,'Пост сохранен')					         
+                    return	
+################################### sohranenie posta
+    if c.data[-1]=='l':
+        for i in range(0,len(add_post_array)):
+            if 	add_post_array[i].post_id==int(c.data[:-1]):
+                    if add_post_array[i].saved==0:
+                        msg =bot.answer_callback_query(c.id,'Этот пост не был сохранен')					         
+                        return	                        
+                    add_post_array[i].saved=0
+                    delete_post(add_post_array[i].post_id)
+                    msg =bot.answer_callback_query(c.id,'Пост удален')					         
+                    return	
+        delete_document(int(c.data[:-1]))       
+        delete_post(int(c.data[:-1]))
+        msg = bot.delete_message(c.message.chat.id, bib)
+        msg =bot.send_message(c.message.chat.id, 'Пост удален') 	
+        return		
 ###################################				
     msg =bot.answer_callback_query(c.id,'Эта функция пока не доступна')     				
     return		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 		
@@ -385,7 +519,11 @@ def name(m):
             a=0
         for i in range(0,len(add_post_array)):
             if 	add_post_array[i].user_id==m.chat.id:
+                if add_post_array[i].saved==0:
+                    if add_post_array[i].document!='':
+                        os.remove("documents/"+add_post_array[i].document)
                 del add_post_array[i]
+                
     if m.text ==lengstr(ll,3):
         add_channel.append(m.chat.id)
         msg = bot.send_message(m.chat.id,lengstr(ll,7))
@@ -427,11 +565,12 @@ def name(m):
         types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
         types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
         types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-        types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+        types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
         types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
         types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
         types.InlineKeyboardButton(text='⚪️ Закрепить',callback_data=str(post_id)+'z'),
         types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
+        types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
         types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
         msg =bot.send_message(m.chat.id, lengstr(ll,13),reply_markup=keyboard) 
 ############################### shapka izmeneni		
@@ -587,6 +726,60 @@ def  reactions_forse(message_id,cennel_id,user_id,num):
         return('N')	
   
   
+def save_post(post_id,user_id,channel_id,postr):
+    conn = sqlite3.connect('SAVES.sqlite')
+    cursor = conn.cursor()
+    inputt = pickle.dumps(postr)
+    times=str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print(times)
+    cursor.execute("insert into SAVED_POST values (:post_id, :user_id, :channel_id, :message_object, :time) ", {"post_id": post_id,"user_id": user_id,"channel_id": channel_id,"message_object": inputt,"time": times,})
+    conn.commit()
+    conn.close()   
+  
+  
+def delete_post(post_id):
+    conn = sqlite3.connect('SAVES.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM SAVED_POST WHERE POST_ID = :post_id",{"post_id":post_id})
+    conn.commit()    
+    conn.close()   
+  
+def delete_document(post_id):  
+    conn = sqlite3.connect('SAVES.sqlite')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM SAVED_POST WHERE POST_ID = :cennel_id ",{"cennel_id":post_id})
+  
+    results = cursor.fetchall()	
+    obj=pickle.loads(results[0][3]  )
+    os.remove("documents/"+obj.document)    	
+    conn.close() 
+	
+def post_in_channel(channel_id):
+    conn = sqlite3.connect('SAVES.sqlite')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM SAVED_POST WHERE CHANNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+  
+    results = cursor.fetchall()	    
+    conn.close() 
+    return(results)	
+  
+  
+  
+def select_from_saved(inm):
+    conn = sqlite3.connect('SAVES.sqlite')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM SAVED_POST WHERE POST_ID = :cennel_id ",{"cennel_id":inm})
+  
+    results = cursor.fetchall()	
+    res=pickle.loads(results[0][3])    
+    conn.close() 
+    return(res)	
+
+
+ 
 def kukoard(post_id,channel_id):
                     for i in range(0,len(add_post_array)):
                         if 	add_post_array[i].post_id==post_id:
@@ -606,11 +799,12 @@ def kukoard(post_id,channel_id):
                     types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
                     types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
                     types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-                    types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+                    types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
                     types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
                     types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
                     types.InlineKeyboardButton(text=pin_str+'Закрепить',callback_data=str(post_id)+'z'),
                     types.InlineKeyboardButton(text=mut_str+'Уведомления',callback_data=str(post_id)+'u'),
+                    types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                     types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
                     return(keyboard)
 ############################################# dostaem photo dla posta	
@@ -641,11 +835,12 @@ def photoget(message):
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
                 types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
                 types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-                types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+                types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
                 types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
                 types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
                 types.InlineKeyboardButton(text='⚪️ Закрепить',callback_data=str(post_id)+'z'),
                 types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
+                types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                 types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
                 msg =bot.send_message(message.chat.id, lengstr(ll,13),reply_markup=keyboard) 
 ########################### dostaem audio	
@@ -677,11 +872,12 @@ def photoget(message):
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
                 types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
                 types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-                types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+                types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
                 types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
                 types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
                 types.InlineKeyboardButton(text='⚪️ Закрепить',callback_data=str(post_id)+'z'),
                 types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
+                types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                 types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
                 msg =bot.send_message(message.chat.id, lengstr(ll,13),reply_markup=keyboard)
 ####################### dostaem video
@@ -713,11 +909,12 @@ def photoget(message):
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
                 types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
                 types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-                types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+                types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
                 types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
                 types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
                 types.InlineKeyboardButton(text='⚪️ Закрепить',callback_data=str(post_id)+'z'),
                 types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
+                types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                 types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
                 msg =bot.send_message(message.chat.id, lengstr(ll,13),reply_markup=keyboard)
 ######################### dostaem document
@@ -753,11 +950,12 @@ def photoget(message):
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'o'),
                 types.InlineKeyboardButton(text='Время публикации',callback_data=str(post_id)+'v'),
                 types.InlineKeyboardButton(text='Сохранить',callback_data=str(post_id)+'s'),
-                types.InlineKeyboardButton(text='Удалить',callback_data=str(post_id)+'d'),
+                types.InlineKeyboardButton(text='Автоудаление',callback_data=str(post_id)+'d'),
                 types.InlineKeyboardButton(text='Предпросмотр',callback_data=str(post_id)+'p'),
                 types.InlineKeyboardButton(text='Начать сначала',callback_data=str(post_id)+'n'),
                 types.InlineKeyboardButton(text='⚪️ Закрепить',callback_data=str(post_id)+'z'),
                 types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
+                types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                 types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
                 msg =bot.send_message(message.chat.id, lengstr(ll,13),reply_markup=keyboard)
 
@@ -796,7 +994,7 @@ def forserer():
             url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
             keyboard.add(url_button)
         if len(obj.reactions)>0:
-            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='react'+str(i)+':'+name) for name in add_post_array[i].reactions])
+            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])
             			
         if 	obj.mut==1:
             mut=True
@@ -819,7 +1017,9 @@ def forserer():
         if obj.delete_time>0:
             add_delete_func(joy,obj.channel_id,obj.delete_time)                
         if 	obj.pin==1:
-            msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)	  
+            msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)
+        if obj.saved==0:
+                    os.remove("documents/"+obj.document)			
                 	
         
 
