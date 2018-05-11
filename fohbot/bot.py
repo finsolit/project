@@ -189,7 +189,7 @@ def inline(c):
                 if 	add_post_array[i].document_type=='':				
                     msg =bot.send_message(add_post_array[i].channel_id, add_post_array[i].text,reply_markup=keyboard,disable_notification=mut)
                 if  add_post_array[i].document_type=='photo':
-                    msg =bot.send_photo(add_post_array[i].channel_id, add_post_array[i].document,caption=add_post_array[i].text,reply_markup=keyboard,disable_notification=mut)                    
+                    msg =bot.send_photo(add_post_array[i].channel_id, open('documents/'+add_post_array[i].document, 'rb'),caption=add_post_array[i].text,reply_markup=keyboard,disable_notification=mut)                    
                 if  add_post_array[i].document_type=='audio':
                     msg =bot.send_audio(add_post_array[i].channel_id, open('documents/'+add_post_array[i].document, 'rb'),caption=add_post_array[i].text,reply_markup=keyboard,disable_notification=mut)
                 if  add_post_array[i].document_type=='video':
@@ -632,7 +632,6 @@ def photoget(message):
                 bb=bot.get_file(fileid)
                 bb=bb.file_path
                 logo = urllib.request.urlopen("https://api.telegram.org/file/bot"+TOKEN+"/"+bb).read()
-                add_post_array[i].document="https://api.telegram.org/file/bot"+TOKEN+"/"+bb
                 f = open("documents/"+add_post_array[i].document, "wb")
                 f.write(logo)
                 f.close()
