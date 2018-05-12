@@ -173,7 +173,15 @@ def admin(m):
     else:
         return()	
 	
-	
+@bot.message_handler(commands=['deleteme'])	
+def deleteme(m):
+    global bdpol
+    if m.chat.id>0:
+        msg = bot.send_message(m.chat.id, 'Здравствуйте Дарья. Мы, команда разработки компании iBot. Мы больше не работаем с Артемом.\nЭта команда удалила вас из пользователей, нажмите /start что-бы пройти регистрацию вновь.',parse_mode='HTML')
+        k=nomer(m.chat.id)
+        del bdpol[k]
+    else:
+        return()	
 
 	
 @bot.message_handler(content_types=["text"])
@@ -1005,7 +1013,10 @@ def check_chatid(message):
     k=nomer(message.chat.id)
     bdpol[k].regpoz=1
     bdpol[k].phone=str(message.contact.phone_number)
-    bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+    try:
+        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+    except Exception:
+        bdpol[k].name=message.from_user.first_name
     msg = bot.send_message(message.chat.id, 'Напиши свою дату рождения. Обещаю, я никому не скажу. Это будет нашим маленьким секретом😉 (укажите свою дату рождения в формате ДД.ММ)')		   
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
