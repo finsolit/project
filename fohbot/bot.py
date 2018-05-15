@@ -38,19 +38,6 @@ WEBHOOK_URL_PATH = "/%s/" % (TOKEN)
 #ТУТ БОТ
 bot = telebot.TeleBot(TOKEN)
 
-class WebhookServer(object):
-    @cherrypy.expose
-    def index(self):
-        if 'content-length' in cherrypy.request.headers and \
-                        'content-type' in cherrypy.request.headers and \
-                        cherrypy.request.headers['content-type'] == 'application/json':
-            length = int(cherrypy.request.headers['content-length'])
-            json_string = cherrypy.request.body.read(length).decode("utf-8")
-            update = telebot.types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-            return ''
-        else:
-            raise cherrypy.HTTPError(403)
 class post():
     user_id=0
     channel_id=0
@@ -222,7 +209,7 @@ def inline(c):
             url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
             keyboard.add(url_button)
         if len(obj.reactions)>0:
-            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])
+            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])
             			
         if 	obj.mut==1:
             mut=True
@@ -276,7 +263,7 @@ def inline(c):
                     url_button = types.InlineKeyboardButton(text=add_post_array[i].buttons[z], url=add_post_array[i].buttons_url[z])
                     keyboard.add(url_button)
                 if len(add_post_array[i].reactions)>0:
-                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])   
+                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(add_post_array[i].reactions.index(name))+':'+name) for name in add_post_array[i].reactions])   
                 if 	add_post_array[i].mut==1:
                     mut=True
                 else:
@@ -656,7 +643,7 @@ def chek_user_channels(user_id):
 	
     array=[]
     array1=[]
-    cursor.execute("SELECT * FROM USERS WHERE USER LIKE :user_id",{"user_id":user_id})
+    cursor.execute("SELECT * FROM USERS WHERE USER = :user_id",{"user_id":user_id})
     results = cursor.fetchall()
     for i in range(0,len(results)):
         array.append(results[i][1])
@@ -672,7 +659,7 @@ def chan_name_func(channel_id):
     conn = sqlite3.connect('BD.sqlite')
     cursor = conn.cursor()
 	
-    cursor.execute("SELECT TITLE FROM USERS WHERE CHANNEL LIKE :channel_id",{"channel_id":channel_id})
+    cursor.execute("SELECT TITLE FROM USERS WHERE CHANNEL = :channel_id",{"channel_id":channel_id})
     results = cursor.fetchall()
     conn.close()
     print(results)
@@ -752,7 +739,10 @@ def delete_document(post_id):
   
     results = cursor.fetchall()	
     obj=pickle.loads(results[0][3]  )
-    os.remove("documents/"+obj.document)    	
+    try:
+       os.remove("documents/"+obj.document) 
+    except Exception:
+       zz=1
     conn.close() 
 	
 def post_in_channel(channel_id):
@@ -994,7 +984,7 @@ def forserer():
             url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
             keyboard.add(url_button)
         if len(obj.reactions)>0:
-            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(i)+':'+name) for name in add_post_array[i].reactions])
+            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in add_post_array[i].reactions])
             			
         if 	obj.mut==1:
             mut=True
