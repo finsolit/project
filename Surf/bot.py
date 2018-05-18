@@ -97,7 +97,9 @@ def nomer(b):
             return(z)
 			
 				
-			
+input = open('bdpol.pkl', 'rb')
+bdpol = pickle.load(input)
+input.close()			
 			
 			
 # Handle '/start' and '/help'
@@ -282,7 +284,10 @@ def inline(c):
             sheetka.cell(row=i+1, column=2).value = bdpol[i].phone
             sheetka.cell(row=i+1, column=3).value = bdpol[i].bonus
         wads.save('bduser.xlsx')
-        msg = bot.send_document(c.message.chat.id,open('bduser.xlsx', 'rb'))			
+        msg = bot.send_document(c.message.chat.id,open('bduser.xlsx', 'rb'))	
+    output = open('bdpol.pkl', 'wb')
+    pickle.dump(bdpol, output, 2)
+    output.close() 		
     #if c.data=='Редактировать пользователя':		
         #msg = bot.send_message(c.message.chat.id, 'Напишите телефон пользователя',parse_mode='HTML')		
 		
@@ -389,7 +394,7 @@ def name(m):
             bdpol[k].addtext=4        
             spisem=m.text
             for i in range (0,len(bdpol)):
-                if spisem == bdpol[i].email:
+                if spisem == bdpol[i].phone:
                     msg = bot.send_message(m.chat.id,info(1,33),parse_mode='HTML')
                     return()
             msg = bot.send_message(m.chat.id,'Данные введены неверно',parse_mode='HTML')
