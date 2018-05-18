@@ -50,7 +50,6 @@ class WebhookServer(object):
             bot.process_new_updates([update])
             return ''
         else:
-            raise cherrypy.HTTPError(403)
 class post():
     user_id=0
     channel_id=0
@@ -63,7 +62,7 @@ class post():
     post_id=0
     add_type=''
     pin=0
-    mut=0
+    mut=-1
     saved=0
     delete_time=0
     forse_time=0
@@ -117,6 +116,7 @@ def inline(c):
 ################################## Kanal 
     if c.data[-1]=='$':
         channel_id=c.data[:-1]
+        chek_channel_options(channel_id)
         channel_name=chan_name_func(channel_id)
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'%') for name in ['Создать публикацию']])
@@ -172,6 +172,9 @@ def inline(c):
         keyboard=option_keyboard(zz)
         msg =bot.edit_message_reply_markup(c.message.chat.id,bib,reply_markup=keyboard)         		
         return	
+############################### nastroika chasovogo poiasa
+    if c.data[-2:]=='tp':
+        msg =bot.answer_callback_query(c.id,'Эта функция пока не доступна')          
 ############################### izmenenie reakci v kanale 
     if c.data[-2:]=='ra':
         channel_id=c.data[:-2]
@@ -246,12 +249,12 @@ def inline(c):
         msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=channel_name,reply_markup=keyboard)  
         return
 ################################# nastroiki kanala
-    #if c.data[-1]=='*':
-        #channel_id=int(c.data[:-1])	
-        #zz=chek_channel_options(channel_id)
-        #keyboard=option_keyboard(zz)
-        #msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text='Настройки канала',reply_markup=keyboard)          
-        #return      
+    if c.data[-1]=='*':
+        channel_id=int(c.data[:-1])	
+        zz=chek_channel_options(channel_id)
+        keyboard=option_keyboard(zz)
+        msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text='Настройки канала',reply_markup=keyboard)          
+        return      
 ################################# spisok publikaci
     if c.data[-1]=='@':
         channel_id=int(c.data[:-1])	
@@ -293,55 +296,10 @@ def inline(c):
         return
 ################################
     if 'selopl' in c.data:
-        inm=c.data[6:]
-        obj=select_from_saved(inm)
-        channel_id=obj.channel_id
-        post_id=obj.post_id 
-        keyboard = types.InlineKeyboardMarkup()
-        for z in range(0,len(obj.buttons_url)):
-            print(obj.buttons[z],obj.buttons_url[z])
-            url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
-            keyboard.add(url_button)
-        if len(obj.reactions)>0:
-            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])
-            			
-        if 	obj.mut==1:
-            mut=True
-        else:
-            mut=False	
-        if 	obj.document_type=='':				
-            msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='photo':
-            msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
-        if  obj.document_type=='audio':
-            msg =bot.send_audio(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='video':
-            msg =bot.send_video(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='document':
-            msg =bot.send_document(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
-   
-        joy=msg.message_id
-        if len(obj.reactions)>0:
-            add_reactions(obj.channel_id,joy,obj.reactions)
-        if obj.delete_time>0:
-            add_delete_func(joy,obj.channel_id,obj.delete_time)                
-        if 	obj.pin==1:
-            msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)
-        return					
-################################# redaktirovanie sohranennogo posta
-    if 'selred'	in c.data:
-        inm=c.data[6:]
-        obj=select_from_saved(inm) 
-        add_post_cok(c.message.chat.id,obj.channel_id,obj.post_id,obj)        
-        keyboard=kukoard(obj.post_id,obj.channel_id,c.message.chat.id)
-        msg = bot.delete_message(c.message.chat.id,bib)
-        msg = bot.send_message(c.message.chat.id,lengstr(ll,13),reply_markup=keyboard) 
-        return	
-################################# zaplanirovat		
-################################# publikacia posta
-    if c.data[-1]=='o':
-                obj_post=find_post_cok(c.message.chat.id) 
-                obj=obj_post[1]				
+                inm=c.data[6:]
+                obj=select_from_saved(inm)
+                channel_id=obj.channel_id
+                channel=chek_channel_options(channel_id)				
                 if obj.forse_time>0: 
                     inputt = pickle.dumps(obj)
                     add_forse_func(obj.forse_time,inputt)
@@ -355,12 +313,24 @@ def inline(c):
                     keyboard.add(url_button)
                 if len(obj.reactions)>0:
                     keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])   
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        arreak=[]
+                        for sv in range(0,len(channel[0])):
+                            arreak.append(channel[0][sv])								
+                        keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(arreak.index(name))+':'+name) for name in arreak])   
                 if 	obj.mut==1:
+                    mut=True
+                elif obj.mut==-1 and channel[6]==1:
                     mut=True
                 else:
                     mut=False	
+                if channel[4]==1:
+                    mut_ssilka=True
+                else:
+                    mut_ssilka=False
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut)
+                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
@@ -373,8 +343,87 @@ def inline(c):
                 joy=msg.message_id
                 if len(obj.reactions)>0:
                     add_reactions(obj.channel_id,joy,obj.reactions)
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        add_reactions(obj.channel_id,joy,arreak)					
                 if obj.delete_time>0:
-                    add_delete_func(joy,obj.channel_id,obj.delete_time)                
+                    tim=[0,3600,10800,21600,43200,86400,172800,604800,1209600,2592000]
+                    add_delete_func(joy,obj.channel_id,tim[obj.delete_time])  
+                elif channel[3]==1:
+                    if channel[2]>0:
+                        add_delete_func(joy,obj.channel_id,channel[2])  					
+                if 	obj.pin==1:
+                    msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)	               
+                msg =bot.answer_callback_query(c.id,lengstr(ll,14)) 
+                return						
+################################# redaktirovanie sohranennogo posta
+    if 'selred'	in c.data:
+        inm=c.data[6:]
+        obj=select_from_saved(inm) 
+        add_post_cok(c.message.chat.id,obj.channel_id,obj.post_id,obj)        
+        keyboard=kukoard(obj.post_id,obj.channel_id,c.message.chat.id)
+        msg = bot.delete_message(c.message.chat.id,bib)
+        msg = bot.send_message(c.message.chat.id,lengstr(ll,13),reply_markup=keyboard) 
+        return	
+################################# zaplanirovat		
+################################# publikacia posta
+    if c.data[-1]=='o':
+                obj_post=find_post_cok(c.message.chat.id) 
+                obj=obj_post[1]	
+                channel_id=obj.channel_id
+                channel=chek_channel_options(channel_id)				
+                if obj.forse_time>0: 
+                    inputt = pickle.dumps(obj)
+                    add_forse_func(obj.forse_time,inputt)
+                    msg =bot.answer_callback_query(c.id,lengstr(ll,35)) 
+                    return
+                print(obj.channel_id)
+                keyboard = types.InlineKeyboardMarkup()
+                for z in range(0,len(obj.buttons_url)):
+                    print(obj.buttons[z],obj.buttons_url[z])
+                    url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
+                    keyboard.add(url_button)
+                if len(obj.reactions)>0:
+                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])   
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        arreak=[]
+                        for sv in range(0,len(channel[0])):
+                            arreak.append(channel[0][sv])								
+                        keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(arreak.index(name))+':'+name) for name in arreak])   
+                if 	obj.mut==1:
+                    mut=True
+                elif obj.mut==-1 and channel[6]==1:
+                    mut=True
+                else:
+                    mut=False	
+                if channel[4]==1:
+                    mut_ssilka=True
+                else:
+                    mut_ssilka=False
+                if 	obj.document_type=='':				
+                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                if  obj.document_type=='photo':
+                    msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
+                if  obj.document_type=='audio':
+                    msg =bot.send_audio(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+                if  obj.document_type=='video':
+                    msg =bot.send_video(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+                if  obj.document_type=='document':
+                    msg =bot.send_document(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+   
+                joy=msg.message_id
+                if len(obj.reactions)>0:
+                    add_reactions(obj.channel_id,joy,obj.reactions)
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        add_reactions(obj.channel_id,joy,arreak)					
+                if obj.delete_time>0:
+                    tim=[0,3600,10800,21600,43200,86400,172800,604800,1209600,2592000]
+                    add_delete_func(joy,obj.channel_id,tim[obj.delete_time])  
+                elif channel[3]==1:
+                    if channel[2]>0:
+                        add_delete_func(joy,obj.channel_id,channel[2])  					
                 if 	obj.pin==1:
                     msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)	               
                 msg =bot.answer_callback_query(c.id,lengstr(ll,14)) 
@@ -427,7 +476,7 @@ def inline(c):
     if c.data[-1]=='z':
                 obj_post=find_post_cok(c.message.chat.id) 
                 obj=obj_post[1]	
-                if obj.pin==0:
+                if obj.pin<=0:
                     obj.pin=1
                     msg =bot.answer_callback_query(c.id,'Пост будет закреплен')
                 else:
@@ -443,7 +492,7 @@ def inline(c):
     if c.data[-1]=='u':
                 obj_post=find_post_cok(c.message.chat.id) 
                 obj=obj_post[1]	
-                if obj.mut==0:
+                if obj.mut<=0:
                     obj.mut=1
                     msg =bot.answer_callback_query(c.id,'Пост не пришлет уведомление')
                 else:
@@ -489,19 +538,39 @@ def inline(c):
     if c.data[-1]=='p':
                 obj_post=find_post_cok(c.message.chat.id) 
                 obj=obj_post[1]	
+                channel_id=obj.channel_id
+                channel=chek_channel_options(channel_id)				
+                if obj.forse_time>0: 
+                    inputt = pickle.dumps(obj)
+                    add_forse_func(obj.forse_time,inputt)
+                    msg =bot.answer_callback_query(c.id,lengstr(ll,35)) 
+                    return
+                print(obj.channel_id)
                 keyboard = types.InlineKeyboardMarkup()
                 for z in range(0,len(obj.buttons_url)):
                     print(obj.buttons[z],obj.buttons_url[z])
                     url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
                     keyboard.add(url_button)
                 if len(obj.reactions)>0:
-                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='') for name in obj.reactions])   
+                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='‰') for name in obj.reactions])   
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        arreak=[]
+                        for sv in range(0,len(channel[0])):
+                            arreak.append(channel[0][sv])								
+                        keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='‰') for name in arreak])   
                 if 	obj.mut==1:
+                    mut=True
+                elif obj.mut==-1 and channel[6]==1:
                     mut=True
                 else:
                     mut=False	
+                if channel[4]==1:
+                    mut_ssilka=True
+                else:
+                    mut_ssilka=False
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(c.message.chat.id, obj.text,reply_markup=keyboard,disable_notification=mut)
+                    msg =bot.send_message(c.message.chat.id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(c.message.chat.id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
@@ -681,8 +750,7 @@ def name(m):
 def add_delete_func(message_id,channel_id,delete_time):
     conn = sqlite3.connect('Thread.sqlite')
     cursor = conn.cursor()
-    tim=[0,3600,10800,21600,43200,86400,172800,604800,1209600,2592000]
-    delete_time=tim[delete_time]+int(time.time())
+    delete_time=delete_time+int(time.time())
     print(message_id)
     print(channel_id)
     print(delete_time)
@@ -771,6 +839,7 @@ def  reactions_forse(message_id,cennel_id,user_id,num):
   
     results = cursor.fetchall()	    
     conn.close()
+    print(results)
     users=pickle.loads(results[0][2])
     reactions=pickle.loads(results[0][3])
     numbers=pickle.loads(results[0][4])
@@ -972,11 +1041,11 @@ def kukoard(post_id,channel_id,user_id):
                     obj=obj_post[1]	
                     mut=obj.mut
                     pin=obj.pin
-                    if mut==0:
+                    if mut<=0:
                         mut_str='⚪️ '
                     else:
                         mut_str='🔘 '
-                    if pin==0:
+                    if pin<=0:
                         pin_str='⚪️ '
                     else:
                         pin_str='🔘 '
@@ -1215,37 +1284,59 @@ def forserer():
     conn.commit()    
     conn.close()
     for i in range(0,len(results)):
-        obj=pickle.loads(results[i][1]) 
-        keyboard = types.InlineKeyboardMarkup()
-        for z in range(0,len(obj.buttons_url)):
-            print(obj.buttons[z],obj.buttons_url[z])
-            url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
-            keyboard.add(url_button)
-        if len(obj.reactions)>0:
-            keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])
-            			
-        if 	obj.mut==1:
-            mut=True
-        else:
-            mut=False	
-        if 	obj.document_type=='':				
-            msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='photo':
-            msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
-        if  obj.document_type=='audio':
-            msg =bot.send_audio(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='video':
-            msg =bot.send_video(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
-        if  obj.document_type=='document':
-            msg =bot.send_document(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+                obj=pickle.loads(results[i][1]) 
+                channel_id=obj.channel_id
+                channel=chek_channel_options(channel_id)				
+                print(obj.channel_id)
+                keyboard = types.InlineKeyboardMarkup()
+                for z in range(0,len(obj.buttons_url)):
+                    print(obj.buttons[z],obj.buttons_url[z])
+                    url_button = types.InlineKeyboardButton(text=obj.buttons[z], url=obj.buttons_url[z])
+                    keyboard.add(url_button)
+                if len(obj.reactions)>0:
+                    keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(obj.reactions.index(name))+':'+name) for name in obj.reactions])   
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        arreak=[]
+                        for sv in range(0,len(channel[0])):
+                            arreak.append(channel[0][sv])								
+                        keyboard.add(*[types.InlineKeyboardButton(text=name+':0',callback_data='roact'+str(arreak.index(name))+':'+name) for name in arreak])   
+                if 	obj.mut==1:
+                    mut=True
+                elif obj.mut==-1 and channel[6]==1:
+                    mut=True
+                else:
+                    mut=False	
+                if channel[4]==1:
+                    mut_ssilka=True
+                else:
+                    mut_ssilka=False
+                if 	obj.document_type=='':				
+                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                if  obj.document_type=='photo':
+                    msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
+                if  obj.document_type=='audio':
+                    msg =bot.send_audio(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+                if  obj.document_type=='video':
+                    msg =bot.send_video(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
+                if  obj.document_type=='document':
+                    msg =bot.send_document(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)
    
-        joy=msg.message_id
-        if len(obj.reactions)>0:
-            add_reactions(obj.channel_id,joy,obj.reactions)
-        if obj.delete_time>0:
-            add_delete_func(joy,obj.channel_id,obj.delete_time)                
-        if 	obj.pin==1:
-            msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)
+                joy=msg.message_id
+                if len(obj.reactions)>0:
+                    add_reactions(obj.channel_id,joy,obj.reactions)
+                elif channel[5]>0:
+                    if len(channel[0])>0:
+                        add_reactions(obj.channel_id,joy,arreak)					
+                if obj.delete_time>0:
+                    tim=[0,3600,10800,21600,43200,86400,172800,604800,1209600,2592000]
+                    add_delete_func(joy,obj.channel_id,tim[obj.delete_time])  
+                elif channel[3]==1:
+                    if channel[2]>0:
+                        add_delete_func(joy,obj.channel_id,channel[2])  					
+                if 	obj.pin==1:
+                    msg=bot.pin_chat_message(obj.channel_id,joy,disable_notification=mut)	               
+                return	
 		
                 	
         
