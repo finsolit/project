@@ -25,7 +25,7 @@ def  lengstr(leng,strn):
 TOKEN = '502527811:AAFmZk2ZhOrtToLsFprcLzucoPAtIwbYZEY'
 
 
-WEBHOOK_HOST = '95.46.98.126'
+WEBHOOK_HOST = '95.46.98.28'
 WEBHOOK_PORT = 88  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
