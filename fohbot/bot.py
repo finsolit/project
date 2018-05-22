@@ -161,7 +161,7 @@ def inline(c):
             if num>0:
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(num-1)+'Gur') for name in ['«']])			
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Все каналы']])
-            msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib,text=lengstr(ll,10)+str(len(channel_list[0])),reply_markup=keyboard)
+            msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib,text='Всего каналов: '+str(len(channel_list[0])),reply_markup=keyboard)
             return        	
 ################################# vse kanali
     if c.data =='Все каналы':
@@ -310,6 +310,8 @@ def inline(c):
         for i in range(0,len(pos)):
             dd=pos[i][4]
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='selpost'+str(pos[i][0])) for name in [str(dd)]]) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'rekl') for name in ['Удалить все посты']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'!') for name in ['« Вернуться к каналу']])            
         try:			
             msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text='Список постов у канала:',reply_markup=keyboard)
         except Exception:
@@ -827,7 +829,7 @@ def name(m):
             if len(channel_list[0])>8:
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(1)+'Gur') for name in ['»']])                
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in ['Все каналы']])
-            msg = bot.send_message(m.chat.id,lengstr(ll,10)+str(len(channel_list[0])),reply_markup=keyboard)
+            msg = bot.send_message(m.chat.id,'Всего каналов: '+str(len(channel_list[0])),reply_markup=keyboard)
             return
 #####################  dobavlenie texta v novi post
     obj_post=find_post_cok(m.chat.id)
