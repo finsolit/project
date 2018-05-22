@@ -271,19 +271,24 @@ def inline(c):
         pickle.dump(posts, output, 2)
         output.close() 
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'!') for name in ['Назад к каналу']])
-        msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,12),reply_markup=keyboard) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=c.data[:-1]+'!') for name in ['« Вернуться к каналу']])
+        msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,12),reply_markup=keyboard,parse_mode='HTML') 
         return
 ############################## otmena dobavlenia posta v kanale		
     if c.data[-1]=='!':
         delete_cok(c.message.chat.id)
         channel_id=c.data[:-1]
+        chek_channel_options(channel_id)
         channel_name=chan_name_func(channel_id)
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'%') for name in ['Создать публикацию']])
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'@') for name in ['Мои публикации']])
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'&') for name in ['Автопостинг']])
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(channel_id)+'*') for name in ['Настройки']])
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(types.InlineKeyboardButton(text='Создать публикацию',callback_data=str(channel_id)+'%'),
+                     types.InlineKeyboardButton(text='Мои публикации',callback_data=str(channel_id)+'@'))
+        keyboard.add(types.InlineKeyboardButton(text='Автопостинг',callback_data=str(channel_id)+'&'),
+                     types.InlineKeyboardButton(text='Реклама канала',callback_data=str(channel_id)+'rekl'))
+        keyboard.add(types.InlineKeyboardButton(text='Статистика',callback_data=str(channel_id)+'stat'),
+                     types.InlineKeyboardButton(text='Настройки',callback_data=str(channel_id)+'*'))
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'off') for name in ['🔘 Бот включен в канале']])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'Gur') for name in ['« Вернуться к каналам']])	
         try:				
             msg =bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=channel_name,reply_markup=keyboard)	
         except Exception:
@@ -325,7 +330,10 @@ def inline(c):
         types.InlineKeyboardButton(text='Запланировать',callback_data=str(post_id)+'l'),
         types.InlineKeyboardButton(text='Назад к списку постов',callback_data=str(channel_id)+'@'))
         if 	obj.document_type=='':				
-            msg =bot.send_message(c.message.chat.id, obj.text,reply_markup=keyboard)
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard)
         if  obj.document_type=='photo':
             msg =bot.send_photo(c.message.chat.id, obj.document,caption=obj.text,reply_markup=keyboard)                    
         if  obj.document_type=='audio':
@@ -374,7 +382,10 @@ def inline(c):
                 else:
                     mut_ssilka=False
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
@@ -432,7 +443,10 @@ def inline(c):
                 else:
                     obj.text=str(opis)+str(obj.text)
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(c.message.chat.id, opis,reply_markup=keyboard)
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(c.message.chat.id, obj.document,caption=obj.text,reply_markup=keyboard)                    
                 if  obj.document_type=='audio':
@@ -480,7 +494,10 @@ def inline(c):
                 else:
                     mut_ssilka=False
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
@@ -515,12 +532,12 @@ def inline(c):
                 obj.add_type='buttons'
                 dump_post_cok(c.message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])
-                try:				
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
+                try:
                     msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
                 except Exception:
-                    msg.bot.delete_message(c.message.chat.id,bib)
-                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
+                    msg=bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
                 return		
 ################################# vrema publikacii
     if c.data[-1]=='v':
@@ -533,8 +550,8 @@ def inline(c):
                 try:
                     msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
                 except Exception:
-                    msg.bot.delete_message(c.message.chat.id,bib)
-                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
+                    msg=bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
                 return						
 ################################# dobavlenie reakci				
     if c.data[-1]=='r':
@@ -545,11 +562,11 @@ def inline(c):
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addsmile'+name) for name in ['👍👎','😊😄😒','❤😐💔🤢','😄😊😔😱😡']]) 
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
-                try: 				
+                try:				
                     msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,17),reply_markup=keyboard)
                 except Exception:
-                    msg.bot.delete_message(c.message.chat.id,bib)
-                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,17),disable_web_page_preview=True,reply_markup=keyboard)
+                    msg=bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,32),disable_web_page_preview=True,reply_markup=keyboard)
                 return	
 ################################ dobavlenie reakcii cherez smaili
     if 'addsmile' in c.data:
@@ -616,12 +633,12 @@ def inline(c):
                     types.InlineKeyboardButton(text=lengstr(ll,29),callback_data='addelet'+str(7)),
                     types.InlineKeyboardButton(text=lengstr(ll,30),callback_data='addelet'+str(8)),
                     types.InlineKeyboardButton(text=lengstr(ll,31),callback_data='addelet'+str(9)))
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
                 try:				
                     msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,22),reply_markup=keyboard)
                 except Exception:
-                    msg.bot.delete_message(c.message.chat.id,bib)
-                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,22),disable_web_page_preview=True,reply_markup=keyboard)
+                    msg=bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
                 return	
 ################################# zapis na udalenie
     if 'addelet' in c.data:
@@ -667,7 +684,10 @@ def inline(c):
                     mut_ssilka=False
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])
                 if 	obj.document_type=='':				
-                    msg =bot.send_message(c.message.chat.id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(c.message.chat.id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
@@ -831,7 +851,10 @@ def name(m):
                 types.InlineKeyboardButton(text='⚪️ Уведомления',callback_data=str(post_id)+'u'),
                 types.InlineKeyboardButton(text='Удалить пост',callback_data=str(post_id)+'l'),
                 types.InlineKeyboardButton(text='Вернуться к каналу',callback_data=str(channel_id)+'!'))
-                msg =bot.send_message(m.chat.id, m.text,reply_markup=keyboard)
+                try:
+                    msg =bot.send_message(m.chat.id, m.text,reply_markup=keyboard,parse_mode='Markdown')
+                except Exception:
+                    msg =bot.send_message(m.chat.id, m.text,reply_markup=keyboard)                    
                 return				
 ############################### shapka izmeneni		
         obj=obj_post[1]
@@ -1479,8 +1502,11 @@ def forserer():
                     mut_ssilka=True
                 else:
                     mut_ssilka=False
-                if 	obj.document_type=='':				
-                    msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)
+                if 	obj.document_type=='':
+                    try:				
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka,parse_mode='Markdown')
+                    except Exception:
+                      msg =bot.send_message(obj.channel_id, obj.text,reply_markup=keyboard,disable_notification=mut,disable_web_page_preview=mut_ssilka)					
                 if  obj.document_type=='photo':
                     msg =bot.send_photo(obj.channel_id, obj.document,caption=obj.text,reply_markup=keyboard,disable_notification=mut)                    
                 if  obj.document_type=='audio':
