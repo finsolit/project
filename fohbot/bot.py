@@ -119,6 +119,13 @@ def inline(c):
         channel_id=c.data[:-1]
         chek_channel_options(channel_id)
         channel_name=chan_name_func(channel_id)
+        msg = bot.get_chat(channel_id)
+        print(msg.id)
+        print('@'+msg.username)
+        usrnm='@'+msg.username
+        usid=str(msg.id)
+        print(msg)
+        txt='Название канала: '+channel_name[0][0]+'\nЮзернейм канала: '+usrnm+'\nChannelID: '+usid
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         keyboard.add(types.InlineKeyboardButton(text='Создать публикацию',callback_data=str(channel_id)+'%'),
                      types.InlineKeyboardButton(text='Мои публикации',callback_data=str(channel_id)+'@'))
@@ -128,7 +135,7 @@ def inline(c):
                      types.InlineKeyboardButton(text='Настройки',callback_data=str(channel_id)+'*'))
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'off') for name in ['🔘 Бот включен в канале']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'Gur') for name in ['« Вернуться к каналам']])
-        msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=channel_name,reply_markup=keyboard)
+        msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=txt,reply_markup=keyboard)
         return	
 #################################otkluchenie kanala
     if 'off' in c.data:
@@ -280,6 +287,13 @@ def inline(c):
         channel_id=c.data[:-1]
         chek_channel_options(channel_id)
         channel_name=chan_name_func(channel_id)
+        msg = bot.get_chat(channel_id)
+        print(msg.id)
+        print('@'+msg.username)
+        usrnm='@'+msg.username
+        usid=str(msg.id)
+        print(msg)
+        txt='Название канала: '+channel_name[0][0]+'\nЮзернейм канала: '+usrnm+'\nChannelID: '+usid
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         keyboard.add(types.InlineKeyboardButton(text='Создать публикацию',callback_data=str(channel_id)+'%'),
                      types.InlineKeyboardButton(text='Мои публикации',callback_data=str(channel_id)+'@'))
@@ -290,7 +304,7 @@ def inline(c):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'off') for name in ['🔘 Бот включен в канале']])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'Gur') for name in ['« Вернуться к каналам']])	
         try:				
-            msg =bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=channel_name,reply_markup=keyboard)	
+            msg =bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=txt,reply_markup=keyboard)	
         except Exception:
                     msg = bot.delete_message(chat_id=c.message.chat.id, message_id=bib)
                     msg = bot.send_message(chat_id=c.message.chat.id, text=channel_name,reply_markup=keyboard)  
@@ -1183,7 +1197,7 @@ def option_keyboard(channel):
                     keyboard.add(types.InlineKeyboardButton(text=pk+' Предпросмотр ссылок',callback_data=str(channel_id)+'ps'))
                     keyboard.add(types.InlineKeyboardButton(text=rk+' Реакция по умолчанию',callback_data=str(channel_id)+'rp'))
                     keyboard.add(types.InlineKeyboardButton(text=zk+' Звуковые уведомления',callback_data=str(channel_id)+'mu'))
-                    keyboard.add(types.InlineKeyboardButton(text='Назад',callback_data=str(channel_id)+'$'))		
+                    keyboard.add(types.InlineKeyboardButton(text='« Вернуться к каналу',callback_data=str(channel_id)+'$'))		
                     return(keyboard)
 def kukoard(post_id,channel_id,user_id):
                     obj_post=find_post_cok(user_id) 
