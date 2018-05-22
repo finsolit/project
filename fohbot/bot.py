@@ -515,8 +515,12 @@ def inline(c):
                 obj.add_type='buttons'
                 dump_post_cok(c.message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
-                msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])
+                try:				
+                    msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
+                except Exception:
+                    msg.bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,15),disable_web_page_preview=True,reply_markup=keyboard)
                 return		
 ################################# vrema publikacii
     if c.data[-1]=='v':
@@ -526,8 +530,12 @@ def inline(c):
                 dump_post_cok(c.message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
-                msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
-                return					
+                try:
+                    msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
+                except Exception:
+                    msg.bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,33),disable_web_page_preview=True,reply_markup=keyboard)
+                return						
 ################################# dobavlenie reakci				
     if c.data[-1]=='r':
                 obj_post=find_post_cok(c.message.chat.id) 
@@ -536,8 +544,12 @@ def inline(c):
                 dump_post_cok(c.message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addsmile'+name) for name in ['👍👎','😊😄😒','❤😐💔🤢','😄😊😔😱😡']]) 
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])					
-                msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,17),reply_markup=keyboard)
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
+                try: 				
+                    msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,17),reply_markup=keyboard)
+                except Exception:
+                    msg.bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,17),disable_web_page_preview=True,reply_markup=keyboard)
                 return	
 ################################ dobavlenie reakcii cherez smaili
     if 'addsmile' in c.data:
@@ -604,9 +616,13 @@ def inline(c):
                     types.InlineKeyboardButton(text=lengstr(ll,29),callback_data='addelet'+str(7)),
                     types.InlineKeyboardButton(text=lengstr(ll,30),callback_data='addelet'+str(8)),
                     types.InlineKeyboardButton(text=lengstr(ll,31),callback_data='addelet'+str(9)))
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])					
-                msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,22),reply_markup=keyboard)
-                return
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])
+                try:				
+                    msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,22),reply_markup=keyboard)
+                except Exception:
+                    msg.bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,22),disable_web_page_preview=True,reply_markup=keyboard)
+                return	
 ################################# zapis na udalenie
     if 'addelet' in c.data:
                 obj_post=find_post_cok(c.message.chat.id) 
