@@ -51,6 +51,7 @@ class WebhookServer(object):
             return ''
         else:
             raise cherrypy.HTTPError(403)
+
 class post():
     user_id=0
     channel_id=0
@@ -94,8 +95,17 @@ def userstat(message):
     uc=str(users_count())
     cc=str(cannel_count())
     ccc=str(chat_mem_count())
-    msg = bot.send_message(message.chat.id, 'Количество пользователей: '+uc+'\nКоличество каналов: '+cc+'\nКоличество пользователей в каналах: '+ccc)	
+    msg = bot.send_message(message.chat.id, 'Количество пользователей: '+uc+'\nКоличество каналов: '+cc+'\nКоличество пользователей в каналах: '+ccc)
 	
+@bot.message_handler(commands=['use'])
+def use(message):
+    for i in range(0,100000000000):
+        try:
+            msg=bot.get_chat(i)
+            print(msg)
+        except Exception as e:
+            print(e)
+            print(i)			
 	
 @bot.message_handler(content_types=["text"])
 def repeat_all_messages(message): 
@@ -108,6 +118,13 @@ def inline(c):
     global add_channel, add_post, posts,change_post
     ll=1
     bib=c.message.message_id
+################################## Donate
+    if c.data=='Donate':
+        keyboard = types.InlineKeyboardMarkup()
+        callback_button = types.InlineKeyboardButton(text="Копилка", url="telegram.me/Blockchain_info_bot")
+        keyboard.add(callback_button)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,40),reply_markup=keyboard)
+        return
 ################################## reakcii
     if 'roact' in c.data:
         for i in range(0,len(c.data)):
@@ -145,6 +162,20 @@ def inline(c):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=str(0)+'Gur') for name in ['« Вернуться к каналам']])
         msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=txt,reply_markup=keyboard,parse_mode='Markdown',disable_web_page_preview=True)
         return	
+################################# caption for files
+    if 'cpt' in c.data:
+                obj_post=find_post_cok(c.message.chat.id) 
+                obj=obj_post[1]	
+                obj.add_type='caption'
+                dump_post_cok(c.message.chat.id,obj)
+                keyboard = types.InlineKeyboardMarkup(row_width=1)
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='<') for name in [lengstr(ll,32)]])	
+                try:
+                    msg = bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,41),disable_web_page_preview=True,reply_markup=keyboard)
+                except Exception:
+                    msg=bot.delete_message(c.message.chat.id,bib)
+                    msg = bot.send_message(chat_id=c.message.chat.id, text=lengstr(ll,41),disable_web_page_preview=True,reply_markup=keyboard)
+                return	        
 #################################otkluchenie kanala
     if 'off' in c.data:
         num=int(c.data[:-3])
@@ -840,6 +871,11 @@ def name(m):
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='š') for name in ['Отмена']])
         msg = bot.send_message(m.chat.id,lengstr(ll,7),reply_markup=keyboard)
         return
+    if m.text ==lengstr(ll,6):
+        keyboard = types.InlineKeyboardMarkup(row_width=3)
+        keyboard.add(types.InlineKeyboardButton(text="Support", url="https://t.me/Fohbot_News"),types.InlineKeyboardButton(text='Donate',callback_data='Donate'),types.InlineKeyboardButton(text="Общение", url="https://t.me/Fohbot_Chat"))
+        msg = bot.send_message(m.chat.id,lengstr(ll,39),reply_markup=keyboard)
+        return
     if m.chat.id in add_channel:
         new_id=m.forward_from_chat.id
         all_channel=chek_chan()
@@ -901,6 +937,13 @@ def name(m):
                 return				
 ############################### shapka izmeneni		
         obj=obj_post[1]
+############################### caption add
+        if 	obj.add_type=='caption':
+                    obj.add_type==''					
+                    obj.text=m.text
+                    dump_post_cok(m.chat.id,obj)
+                    keyboard=kukoard(obj.post_id,obj.channel_id,m.chat.id)					
+                    msg =bot.send_message(m.chat.id, lengstr(ll,42),reply_markup=keyboard)
 ############################### dobavlenie knopok
         if 	obj.add_type=='buttons':
                     buttons_take=	buttons_create.buttons(m.text)
@@ -908,8 +951,8 @@ def name(m):
                     obj.add_type==''					
                     obj.buttons=buttons_take[0]
                     obj.buttons_url=buttons_take[1]
-                    keyboard=kukoard(obj.post_id,obj.channel_id,m.chat.id)
-                    dump_post_cok(m.chat.id,obj)					
+                    dump_post_cok(m.chat.id,obj)
+                    keyboard=kukoard(obj.post_id,obj.channel_id,m.chat.id)					
                     msg =bot.send_message(m.chat.id, lengstr(ll,16),reply_markup=keyboard)					
 ############################### dobavlenie reakci					
         if 	obj.add_type=='reactions':
@@ -961,6 +1004,17 @@ def add_channel_func(user_id,channel_id,title):
     cursor = conn.cursor()
 	
     cursor.execute("insert into USERS values (:user_id, :channel_id, :title) ", {"user_id": user_id,"channel_id": channel_id,"title": title,})
+    msg = bot.get_chat(channel_id)
+    print(msg.id)
+    try:
+            print('https://t.me/'+msg.username)
+            usrnm='https://t.me/'+msg.username
+    except Exception:
+            usrnm='Недоступно'
+    usid=str(msg.id)
+    print(msg)
+    txt='Добавлен канал: ['+title+']('+usrnm+')\nChannelID: '+usid[4:]    
+    bot.send_message(-1001237388190,txt,parse_mode='Markdown')
     conn.commit()
     conn.close()
 		
@@ -1278,6 +1332,8 @@ def kukoard(post_id,channel_id,user_id):
                         pin_str='🔘 '
                     print(channel_id)
                     keyboard = types.InlineKeyboardMarkup(row_width=2)
+                    if obj.text==None and (obj.document_type=='photo' or obj.document_type=='video' or obj.document_type=='document'):
+                        keyboard.add(types.InlineKeyboardButton(text='Добавить описание',callback_data=str(post_id)+'cpt'))
                     keyboard.add(types.InlineKeyboardButton(text='Добавить кнопки',callback_data=str(post_id)+'k'),
                     types.InlineKeyboardButton(text='Добавить реакцию',callback_data=str(post_id)+'r'),
                     types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'oo'),
@@ -1336,6 +1392,8 @@ def photoget(message):
                 obj.document=message.photo[2].file_id
                 dump_post_cok(message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
+                if obj.text==None:
+                    keyboard.add(types.InlineKeyboardButton(text='Добавить описание',callback_data=str(post_id)+'cpt'))
                 keyboard.add(types.InlineKeyboardButton(text='Добавить кнопки',callback_data=str(post_id)+'k'),
                 types.InlineKeyboardButton(text='Добавить реакцию',callback_data=str(post_id)+'r'),
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'oo'),
@@ -1425,6 +1483,8 @@ def photoget(message):
                 obj.document=message.video.file_id
                 dump_post_cok(message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
+                if obj.text==None:
+                    keyboard.add(types.InlineKeyboardButton(text='Добавить описание',callback_data=str(post_id)+'cpt'))
                 keyboard.add(types.InlineKeyboardButton(text='Добавить кнопки',callback_data=str(post_id)+'k'),
                 types.InlineKeyboardButton(text='Добавить реакцию',callback_data=str(post_id)+'r'),
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'oo'),
@@ -1469,6 +1529,8 @@ def photoget(message):
                 obj.document=message.document.file_id
                 dump_post_cok(message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
+                if obj.text==None:
+                    keyboard.add(types.InlineKeyboardButton(text='Добавить описание',callback_data=str(post_id)+'cpt'))
                 keyboard.add(types.InlineKeyboardButton(text='Добавить кнопки',callback_data=str(post_id)+'k'),
                 types.InlineKeyboardButton(text='Добавить реакцию',callback_data=str(post_id)+'r'),
                 types.InlineKeyboardButton(text='Опубликовать',callback_data=str(post_id)+'oo'),
