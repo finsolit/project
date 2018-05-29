@@ -51,7 +51,6 @@ class WebhookServer(object):
             return ''
         else:
             raise cherrypy.HTTPError(403)
-
 class post():
     user_id=0
     channel_id=0
@@ -121,9 +120,9 @@ def inline(c):
 ################################## Donate
     if c.data=='Donate':
         keyboard = types.InlineKeyboardMarkup()
-        callback_button = types.InlineKeyboardButton(text="Копилка", url="telegram.me/Blockchain_info_bot")
+        callback_button = types.InlineKeyboardButton(text="Копилка", url="https://t.me/Blockchain_info_bot?start=13jtTtFix1ji1j8dzk3WAeo6B1A3hY9FKX")
         keyboard.add(callback_button)
-        msg = bot.send_message(c.message.chat.id, lengstr(ll,40),reply_markup=keyboard)
+        msg = bot.send_photo(c.message.chat.id, 'AgADAgAD4KgxG1I8SEiCZ75xiZ942I50qw4ABL7xdThk0wYt3PoBAAEC',lengstr(ll,40),reply_markup=keyboard)
         return
 ################################## reakcii
     if 'roact' in c.data:
@@ -228,8 +227,23 @@ def inline(c):
         zz=chek_channel_options(channel_id)
         keyboard=option_keyboard(zz)
         msg =bot.edit_message_reply_markup(c.message.chat.id,bib,reply_markup=keyboard)         		
-        return		
-
+        return	
+		
+    if c.data[-2:]=='dc':
+		
+        channel_id=c.data[:-2]
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+                    types.InlineKeyboardButton(text=lengstr(ll,43),callback_data=channel_id+'dd'),
+                    types.InlineKeyboardButton(text=lengstr(ll,44),callback_data=channel_id+'*'))
+        msg =bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,45),reply_markup=keyboard)        		
+        return	
+    if c.data[-2:]=='dd':
+		
+        channel_id=c.data[:-2]
+        delete_channel(channel_id)
+        msg =bot.edit_message_text(chat_id=c.message.chat.id, message_id=bib, text=lengstr(ll,46))         		
+        return	
     if c.data[-2:]=='ps':
 		
         channel_id=c.data[:-2]
@@ -867,13 +881,11 @@ def name(m):
             ff=0
     if m.text ==lengstr(ll,3):
         add_channel.append(m.chat.id)
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='š') for name in ['Отмена']])
-        msg = bot.send_message(m.chat.id,lengstr(ll,7),reply_markup=keyboard)
+        msg = bot.send_message(m.chat.id,lengstr(ll,7))
         return
     if m.text ==lengstr(ll,6):
         keyboard = types.InlineKeyboardMarkup(row_width=3)
-        keyboard.add(types.InlineKeyboardButton(text="Support", url="https://t.me/Fohbot_News"),types.InlineKeyboardButton(text='Donate',callback_data='Donate'),types.InlineKeyboardButton(text="Общение", url="https://t.me/Fohbot_Chat"))
+        keyboard.add(types.InlineKeyboardButton(text="Support", url="https://t.me/FohbotSupportbot"),types.InlineKeyboardButton(text='Donate',callback_data='Donate'),types.InlineKeyboardButton(text="Общение", url="https://t.me/Fohbot_News/3"))
         msg = bot.send_message(m.chat.id,lengstr(ll,39),reply_markup=keyboard)
         return
     if m.chat.id in add_channel:
@@ -978,7 +990,43 @@ def name(m):
     except Exception:
         return	
         	
-			
+def delete_channel(channel_id):
+    conn = sqlite3.connect('CHANNELS.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM CHANNELS WHERE CHANNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close() 	
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM POSTS WHERE CHANNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close()
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM USERS WHERE CHANNEL = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close()
+    conn = sqlite3.connect('Thread.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM DELETER WHERE CHANNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close()
+    conn = sqlite3.connect('Thread.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM POSTS WHERE CHANNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close()
+    conn = sqlite3.connect('Thread.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM REACTIONS WHERE CHENNEL_ID = :cennel_id ",{"cennel_id":channel_id})
+
+    conn.commit()
+    conn.close()	
 			
 def add_delete_func(message_id,channel_id,delete_time):
     conn = sqlite3.connect('Thread.sqlite')
@@ -1315,6 +1363,7 @@ def option_keyboard(channel):
                     keyboard.add(types.InlineKeyboardButton(text=pk+' Предпросмотр ссылок',callback_data=str(channel_id)+'ps'))
                     keyboard.add(types.InlineKeyboardButton(text=rk+' Реакция по умолчанию',callback_data=str(channel_id)+'rp'))
                     keyboard.add(types.InlineKeyboardButton(text=zk+' Звуковые уведомления',callback_data=str(channel_id)+'mu'))
+                    keyboard.add(types.InlineKeyboardButton(text='Удалить канал',callback_data=str(channel_id)+'dc'))
                     keyboard.add(types.InlineKeyboardButton(text='« Вернуться к каналу',callback_data=str(channel_id)+'$'))		
                     return(keyboard)
 def kukoard(post_id,channel_id,user_id):
@@ -1390,6 +1439,7 @@ def photoget(message):
                 post_id=obj.post_id
                 channel_id=obj.channel_id
                 obj.document=message.photo[2].file_id
+                print(obj.document)
                 dump_post_cok(message.chat.id,obj)
                 keyboard = types.InlineKeyboardMarkup(row_width=2)
                 if obj.text==None:
@@ -1686,8 +1736,9 @@ def lal():
     while 1:
         schedule.run_pending()
         time.sleep(1)
-_thread.start_new_thread(lal,())					
-	
+_thread.start_new_thread(lal,())
+
+
 bot.remove_webhook()
 
 bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,
