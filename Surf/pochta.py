@@ -11,7 +11,7 @@ def sendmail(name,email,phone,komment,tripid):
     msg['To'] = toaddr
     msg['Subject'] = "Новая регистрация на поездку"
  
-    body = "Имя: "+name+"\nТелефон: "+phone+"\nПочта: "+email+"\ntripid: "+tripid+" S:"+"\nТвой уровень: "+"\nКомментарий: "+komment
+    body = "Имя: "+name+"\nТелефон: "+phone+"\nПочта: "+email+"\ntripid: "+tripid+"\nS:"+"\nТвой уровень: "+"\nКомментарий: "+komment
     msg.attach(MIMEText(body, 'plain'))
  
     server = smtplib.SMTP('smtp.gmail.com', 587)
