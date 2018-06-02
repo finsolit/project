@@ -7,6 +7,7 @@ import _pickle as pickle
 import requests
 import json
 import random
+import cherrypy
 import string
 import os
 import xlwt
@@ -14,8 +15,22 @@ import urllib
 import pochta
 global wb, wb1, sheet, sheet1
 global arraypaidphone, arraypaidemail
-TOKEN = '500239333:AAEpjOsc00JC1_2cw_Kaq_--VIdv_QzSMTA'
-WEBHOOK_HOST = '95.46.98.126'
+arraypaidphone=[]
+arraypaidemail=[]
+wb = openpyxl.load_workbook(filename = '1.xlsx')
+sheet = wb['test']
+wb1 = openpyxl.load_workbook(filename = '2.xlsx')
+sheet1 = wb1['test']
+def  tour(leng,strn):
+    bb=sheet.cell(row=strn, column=leng).value
+    return str(bb)
+def  info(leng,strn):
+    bb=sheet1.cell(row=strn, column=leng).value
+    if bb==None:
+        bb=''
+    return str(bb)
+TOKEN = '527514328:AAFlxduSoUPlB3xsPbB8soYc1JSMRSLEc9Q'
+WEBHOOK_HOST = '95.46.98.28'
 WEBHOOK_PORT = 80  # 443, 80, 88 или 8443 (порт должен быть открыт!)
 WEBHOOK_LISTEN = '0.0.0.0'  # На некоторых серверах придется указывать такой же IP, что и выше
 
@@ -26,8 +41,6 @@ WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "/%s/" % (TOKEN)
 
 bot = telebot.TeleBot(TOKEN)
-
-
 class WebhookServer(object):
     @cherrypy.expose
     def index(self):
@@ -44,25 +57,6 @@ class WebhookServer(object):
 
 
 
-
-
-arraypaidphone=[]
-arraypaidemail=[]
-wb = openpyxl.load_workbook(filename = '1.xlsx')
-sheet = wb['test']
-wb1 = openpyxl.load_workbook(filename = '2.xlsx')
-sheet1 = wb1['test']
-def  tour(leng,strn):
-    bb=sheet.cell(row=strn, column=leng).value
-    return str(bb)
-def  info(leng,strn):
-    bb=sheet1.cell(row=strn, column=leng).value
-    if bb==None:
-        bb=''
-    return str(bb)
-TOKEN = '507631866:AAHB0tjPBoeNXAABu9zAU7Zt4O8jbTgsZDE'
-
-bot = telebot.TeleBot(TOKEN)
 admin_password='QWERTY123456!@#$%^'
 class userobj():
     id=0
@@ -97,10 +91,10 @@ def nomer(b):
             return(z)
 			
 				
+			
 input = open('bdpol.pkl', 'rb')
 bdpol = pickle.load(input)
 input.close()			
-			
 			
 # Handle '/start' and '/help'
 @bot.message_handler(commands=['help', 'start'])
@@ -219,12 +213,9 @@ def inline(c):
         if bdpol[k].shfr!='':
              msg = bot.send_message(c.message.chat.id, info(1,26)+'\n'+tour(int(c.data[-1]),14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')
              return			 
-        if bdpol[k].phone=='':
-                        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-                        button_phone = types.KeyboardButton(text="Отправить контакт", request_contact=True)
-                        keyboard.add(button_phone)
-                        bdpol[k].phone='2'+c.data[-1]
-                        msg = bot.send_message(c.message.chat.id, info(1,25),parse_mode='HTML',reply_markup=keyboard)	
+        if bdpol[k].email=='':
+                        msg = bot.send_message(c.message.chat.id, info(1,25),parse_mode='HTML')
+                        bdpol[k].email=10+int(c.data[-1])	
                         return()
         else:
              msg = bot.send_message(c.message.chat.id, info(1,26)+'\n'+tour(int(c.data[-1]),14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')		
@@ -256,7 +247,7 @@ def inline(c):
 
         if bdpol[k].phone!='' and bdpol[k].name!='':
             bdpol[k].regpoz=3
-            msg = bot.send_message(m.chat.id, info(1,53),parse_mode='HTML')   
+            msg = bot.send_message(c.message.chat.id, info(1,57),parse_mode='HTML')   
             return()			
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         button_phone = types.KeyboardButton(text="Отправить контакт", request_contact=True)
@@ -287,7 +278,7 @@ def inline(c):
         msg = bot.send_document(c.message.chat.id,open('bduser.xlsx', 'rb'))	
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
-    output.close() 		
+    output.close()		
     #if c.data=='Редактировать пользователя':		
         #msg = bot.send_message(c.message.chat.id, 'Напишите телефон пользователя',parse_mode='HTML')		
 		
@@ -370,12 +361,12 @@ def name(m):
         msg = bot.send_message(m.chat.id, info(1,57),parse_mode='HTML')	
         return()	
 ################################ Ruchnoi vvod telefona
-    #if bdpol[k].phone1==1 and m.text != "Отправить контакт":
-        #bdpol[k].phone1=m.text
-        #bdpol[k].shfr=refrand()	
-        #keyboard = types.InlineKeyboardMarkup(row_width=1)	
-        #keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,31),info(1,47),info(1,44)]])
-        #msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone1),reply_markup=keyboard,parse_mode='HTML')	 		
+    if bdpol[k].phone1==1 and m.text != "Отправить контакт":
+        bdpol[k].phone1=m.text
+        bdpol[k].shfr=refrand()	
+        keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,31),info(1,47),info(1,44)]])
+        msg = bot.send_message(m.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone1),reply_markup=keyboard,parse_mode='HTML')	 		
 ############################## ADMIN COMADNI
     if m.text=='Изменить тексты':
         if bdpol[k].id==admin:
@@ -394,7 +385,7 @@ def name(m):
             bdpol[k].addtext=4        
             spisem=m.text
             for i in range (0,len(bdpol)):
-                if spisem == bdpol[i].phone:
+                if spisem == bdpol[i].email:
                     msg = bot.send_message(m.chat.id,info(1,33),parse_mode='HTML')
                     return()
             msg = bot.send_message(m.chat.id,'Данные введены неверно',parse_mode='HTML')
@@ -545,14 +536,20 @@ def check_chatid(message):
     if bdpol[k].regpoz==1:
            bdpol[k].regpoz=3
            bdpol[k].phone=str(message.contact.phone_number)
-           bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+           try:
+            bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+           except Exception:
+            bdpol[k].name=message.from_user.first_name	   
            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,52)]])
            msg = bot.send_message(message.chat.id, info(1,57) ,reply_markup=keyboard)		   
     if bdpol[k].phone==1:		   
         bdpol[k].phone=str(message.contact.phone_number)
         bdpol[k].shfr=refrand()	
-        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+        try:
+          bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
+        except Exception:
+            bdpol[k].name=message.from_user.first_name	   
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,13)]])
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,2), info(1,3),'Бонусы']])
@@ -561,15 +558,6 @@ def check_chatid(message):
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,27),info(1,47),info(1,44)]])
         msg = bot.send_message(message.chat.id, info(1,28)+str(bdpol[k].bonus)+'\n'+info(1,29)+str(bdpol[k].bonus)+'\n'+info(1,30)+str(bdpol[k].bonus)+'\n'+info(1,32)+str(bdpol[k].phone),reply_markup=keyboard,parse_mode='HTML')	
-    if bdpol[k].phone[0]=='2':
-        tour_num=int(bdpol[k].phone[1:])	
-        bdpol[k].phone=str(message.contact.phone_number)
-        bdpol[k].shfr=refrand()	
-        bdpol[k].name=message.from_user.first_name+' '+message.from_user.last_name 
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,13)]])
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [info(1,2), info(1,3),'Бонусы']])
-        msg = bot.send_message(message.chat.id, info(1,26)+'\n'+tour(tour_num,14)+'/?&SQF_S=$'+bdpol[k].shfr,parse_mode='HTML')        	
     output = open('bdpol.pkl', 'wb')
     pickle.dump(bdpol, output, 2)
     output.close()
@@ -600,13 +588,16 @@ def chek_table(name):
     while kk:
         i+=1
         ff=shut.cell(row=i, column=6).value
+        print(str(shut.cell(row=i, column=25).value))
+        print(str(shut.cell(row=i, column=24).value))		
         if ff==None:
             kk=False
         else:
             if str(ff)=='1':
-                if str(shut.cell(row=i, column=24).value) not in arraypaidphone or str(shut.cell(row=i, column=25).value) not in arraypaidemail:
+                if str(shut.cell(row=i, column=24).value) not in arraypaidphone and str(shut.cell(row=i, column=25).value) not in arraypaidemail:
                     arraypaidphone.append(str(shut.cell(row=i, column=24).value)) 
-                    arraypaidemail.append(str(shut.cell(row=i, column=25).value)) 			
+                    arraypaidemail.append(str(shut.cell(row=i, column=25).value)) 	
+    print(arraypaidphone,arraypaidemail)					
 
 	
 	
@@ -665,7 +656,7 @@ def potok():
                 print(tour(i,17))
                 check_reg(str(tour(i,17)),i)
                 chek_table(str(tour(i,17))) 
-        time.sleep(30)				
+        time.sleep(300)				
 
 ################################## potok s chekom tablic
 
@@ -674,7 +665,7 @@ t1.start()
 
 ##################################	
 	
-		
+	
 bot.remove_webhook()
 
 bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH,
@@ -689,3 +680,4 @@ cherrypy.config.update({
 })
 
 cherrypy.quickstart(WebhookServer(), WEBHOOK_URL_PATH, {'/': {}})
+
