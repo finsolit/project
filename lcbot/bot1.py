@@ -3,6 +3,7 @@ import time
 import threading
 import datetime
 import copy
+import string
 from datetime import datetime
 import schedule
 from telebot import types
@@ -10,16 +11,36 @@ import _pickle as pickle
 import os
 import _thread
 import urllib
+import random
 import sqlite3
 import openpyxl
-global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki
+global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change
+class group:
+    id=0
+    name=''
+    tema=''
+    time=0
+what_change=''	
+def chek_pass():
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM PASS")
+    results = cursor.fetchall()
+    conn.close()	
+    print(results[0][0])
+    return(results[0][0])	
+	
+vvod_koda=[]
+change_group=''
+add_poi=[]
 add_vopros_admin=0
 oprcall=1
 add_opr=0
+new_group=0
 inadmin=[]
 filter=[]
 txtrassilki=''
-password='qwe123'
+password=chek_pass()
 input = open('admin.pkl', 'rb')
 admin_id = pickle.load(input)
 input.close()
@@ -40,11 +61,20 @@ bot = telebot.TeleBot(TOKEN)
 # Handle '/start' and '/help'
 @bot.message_handler(commands=['help', 'start'])
 def start(message):
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(types.InlineKeyboardButton(text=lengstr(1,3),callback_data='%'),
+    gg=start_prov(message.chat.id)
+    if gg==0:
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,3),callback_data='%'),
                      types.InlineKeyboardButton(text=lengstr(1,4),callback_data='@'))
-    msg = bot.send_message(message.chat.id, lengstr(1,2),reply_markup=keyboard)
-
+        msg = bot.send_message(message.chat.id, lengstr(1,2),reply_markup=keyboard)
+    elif gg==1:
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,6)]])
+        msg = bot.send_message(message.chat.id, lengstr(1,5),reply_markup=keyboard) 
+    else:        
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,8),lengstr(1,9)]])
+        msg = bot.send_message(message.chat.id, lengstr(1,7),reply_markup=keyboard) 
 	
 	
 @bot.message_handler(commands=['admin'])	
@@ -55,7 +85,18 @@ def admin(m):
     msg = bot.send_message(m.chat.id, lengstr(1,10),reply_markup=keyboard)    
     return()	
 	
-	
+@bot.message_handler(commands=['chat_id'])	
+def chat_idr(m):
+    global new_group, ngroup, admin_id
+    if new_group==1 and m.from_user.id==admin_id:
+        try:
+            ngroup.id=m.chat.id  
+            ngroup.name=m.chat.title
+            new_group=2
+            msg = bot.send_message(admin_id, lengstr(1,47))
+        except Exception:
+            msg = bot.send_message(admin_id, lengstr(1,48)) 
+    return()	
 
 	
 @bot.message_handler(content_types=["text"])
@@ -66,7 +107,7 @@ def repeat_all_messages(message):
 	
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
-    global oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki
+    global oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, what_change
     bib=c.message.message_id
     if 'otv' in c.data:
         print(c.data)
@@ -221,7 +262,69 @@ def inline(c):
         print(filter)
         keyboard=keyboard_for_filter(opr_id)
         msg = bot.edit_message_reply_markup(c.message.chat.id, bib,reply_markup=keyboard) 
-        return		
+        return	
+    if c.data=='addgroup':
+        new_group=1  
+        ngroup=group()
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,45))      
+        return	
+    if 'grp' in c.data:
+        zcf=chek_group(int(c.data[3:]))	
+        change_group=''
+        keyboard = types.InlineKeyboardMarkup(row_width=2)	
+        keyboard.add(types.InlineKeyboardButton(text='Изменить задержку',callback_data='gzadr'+str(zcf[0])),
+                    types.InlineKeyboardButton(text='Изменить тему',callback_data='gtema'+str(zcf[0])),
+                    types.InlineKeyboardButton(text='Удалить группу',callback_data='gdelt'+str(zcf[0])))	
+        msg = bot.send_message(c.message.chat.id, 'Id: '+str(zcf[0])+'\nНазвание: '+zcf[1]+'\nТема: '+zcf[2]+'\nЗадержка: '+str(zcf[3]),reply_markup=keyboard)     
+    if 'gzadr' in c.data:
+        change_group='z'+c.data[5:]
+        keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,40),callback_data='grp'+c.data[5:])) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,50),reply_markup=keyboard)    
+    if 'gtema' in c.data:
+        change_group='t'+c.data[5:]
+        keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,40),callback_data='grp'+c.data[5:])) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,52),reply_markup=keyboard)       
+    if 'gdelt' in c.data:
+        keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        keyboard.add(types.InlineKeyboardButton(text='Нет',callback_data='grp'+c.data[5:]),types.InlineKeyboardButton(text='Да',callback_data='ddt'+c.data[5:])) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,53),reply_markup=keyboard)
+    if 'ddt' in c.data:
+        delete_group(int(c.data[3:]))
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,54)) 
+    if 'poisk' in c.data:
+        tema=c.data[5:]
+        dobavit_poi(c.message.chat.id,tema)	
+        add_poi.append(c.message.chat.id)
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,57)) 	
+    if 'zaprs' in c.data:
+        zp_id=int(c.data[5:])
+        zaprosi=zaprosi_cl(c.message.chat.id)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,60),callback_data='zpdel'+str(zp_id)))		
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,59)+'\n'+zaprosi[zp_id][3],reply_markup=keyboard) 	
+    if 'zpdel' in c.data:
+        zp_id=int(c.data[5:])
+        zaprosi=zaprosi_delete(c.message.chat.id,zp_id)	
+        msg=  bot.send_message(c.message.chat.id, lengstr(1,61)) 	
+    if 'rznxt' in c.data:
+        zp_id=int(c.data[5:])
+        razgovor_go(c.message.chat.id,zp_id)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        msg=  bot.edit_message_reply_markup(c.message.chat.id,bib,keyboard) 
+    if 'rzend' in c.data:
+        zp_id=int(c.data[5:])
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        msg=  bot.edit_message_reply_markup(c.message.chat.id,bib,keyboard) 
+        msg= bot.send_message(c.message.chat.id,lengstr(1,68)) 	
+        msg= bot.send_message(zp_id,lengstr(1,68))		
+    if c.data=='opciipass':
+        what_change='p'
+        msg= bot.send_message(c.message.chat.id,lengstr(1,72))    
+    if c.data=='opciitext':
+        what_change='t'
+        msg = bot.send_document(c.message.chat.id,open('leng.xlsx', 'rb') ,caption=lengstr(1,74))		
     return()		
 		
 		
@@ -238,7 +341,14 @@ def inline(c):
 		
 		
 def name(m):
-    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki
+    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password
+    razgovori=from_us()
+    if m.chat.id in razgovori:
+        cl_id=chek_razgovor(m.chat.id)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,66),callback_data='rznxt'+str(m.chat.id)))
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,67),callback_data='rzend'+str(m.chat.id)))
+        msg = bot.send_message(cl_id, lengstr(1,65)+str(m.chat.id)+'\n\n'+m.text,reply_markup=keyboard)
     if m.chat.id in inadmin:
         if m.text==password:
             admin_id=m.chat.id
@@ -253,7 +363,35 @@ def name(m):
             keyboard = types.InlineKeyboardMarkup(row_width=2)
             keyboard.add(types.InlineKeyboardButton(text=lengstr(1,11),callback_data='!'))
             msg = bot.send_message(m.chat.id, lengstr(1,13),reply_markup=keyboard) 
- 
+    if m.chat.id in vvod_koda:
+        vvod_koda.remove(m.chat.id)
+        kod=m.text
+        id_client=chek_kod(kod)
+        if id_client==0:
+            msg = bot.send_message(m.chat.id, lengstr(1,63))
+        else:
+            msg = bot.send_message(m.chat.id, lengstr(1,64))
+            razgovor_go(m.chat.id,id_client)			
+    if m.text==lengstr(1,8):
+            temi=groups_tems()
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(temi)):
+                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='poisk'+str(name)) for name in [temi[i][0]]])                 
+            msg = bot.send_message(m.chat.id, lengstr(1,55),reply_markup=keyboard) 
+    if m.text==lengstr(1,6):       
+            vvod_koda.append(m.chat.id)	
+            msg = bot.send_message(m.chat.id, lengstr(1,62)) 
+    if m.text==lengstr(1,9):
+            zaprosi=zaprosi_cl(m.chat.id)
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(zaprosi)):
+                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='zaprs'+str(i)) for name in [zaprosi[i][3][:29]]])                 
+            msg = bot.send_message(m.chat.id, lengstr(1,58),reply_markup=keyboard) 
+    if m.chat.id in add_poi:
+        add_poi.remove(m.chat.id)	
+        ref=refund1()
+        dobavit_poi1(m.chat.id,m.text,ref)
+        msg = bot.send_message(m.chat.id, lengstr(1,56)) 
     if add_vopros_admin==1 and m.chat.id==admin_id:
         zxvopros=m.text
         for i in range(0,len(zxvopros)):
@@ -331,8 +469,293 @@ def name(m):
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='ras'+str(dsa[i][0])) for name in [dsa[i][1]]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,34),reply_markup=keyboard) 			
+            msg = bot.send_message(m.chat.id, lengstr(1,34),reply_markup=keyboard) 		
+    if lengstr(1,17)==m.text and m.chat.id==admin_id:
+            dsa=all_groups()
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(dsa)):
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='grp'+str(dsa[i][0])) for name in [dsa[i][1][:29]]])   
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addgroup') for name in [lengstr(1,44)]])                 
+            msg = bot.send_message(m.chat.id, lengstr(1,43),reply_markup=keyboard) 	  
+    if new_group==2 and m.chat.id==admin_id:
+            ngroup.tema=m.text 
+            new_group=3			
+            msg = bot.send_message(m.chat.id, lengstr(1,46))
+            return			
+    if new_group==3 and m.chat.id==admin_id:
+            if m.text.isdigit():			
+               new_group=0	
+               ngroup.time=m.text			   
+               add_group(ngroup)			   
+               msg = bot.send_message(m.chat.id, lengstr(1,49))	
+            else:
+               msg = bot.send_message(m.chat.id, lengstr(1,48))
+    if change_group!='' and m.chat.id==admin_id:
+        lisd=change_group[0]
+        grid=int(change_group[1:])
+        change_group=''
+        if lisd=='z':
+            if m.text.isdigit():
+                ch_zaderjku(grid,m.text)
+                msg = bot.send_message(m.chat.id, lengstr(1,51))
+            else:
+                msg = bot.send_message(m.chat.id, lengstr(1,48))  
+        if lisd=='t':
+                ch_tema(grid,m.text)
+                msg = bot.send_message(m.chat.id, lengstr(1,51))	
+    print(m.text, admin_id, m.chat.id)
+    if m.text==lengstr(1,42) and m.chat.id==admin_id:
+            keyboard = types.InlineKeyboardMarkup(row_width=1)  
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciitext') for name in [lengstr(1,70)]])        
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciipass') for name in [lengstr(1,71)]])  			
+            msg = bot.send_message(m.chat.id, lengstr(1,69),reply_markup=keyboard) 	  
+    if what_change=='p' and m.chat.id==admin_id:
+        change_pass(m.text)
+        password=m.text	
+        what_change=''		
+        msg = bot.send_message(m.chat.id, lengstr(1,73)) 
     return
+
+	
+def change_pass(text):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM PASS")
+    conn.commit()
+    conn.close() 
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into PASS values (:a1) ", {"a1": text})
+    conn.commit()
+    conn.close()     	
+
+	
+def start_prov(id):
+    results1=[]
+    results2=[]
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM USERS_CL")
+    results = cursor.fetchall()   
+    conn.close()
+    for i in range(0,len(results)):
+        results1.append(results[i][0])
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM USERS_UR")
+    results = cursor.fetchall()   
+    conn.close()
+    for i in range(0,len(results)):
+        results2.append(results[i][0])	
+    if id in results1:
+       return(2)	
+    if id in results2:
+       return(1)	
+    return(0) 
+    
+	
+def chek_razgovor(id):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM RAZ")
+    results = cursor.fetchall()
+    conn.close()
+    for i in range(0,len(results)):
+        if results[i][0]==id:
+            conn = sqlite3.connect('CONV.sqlite')
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM RAZ WHERE FROM1 = :cod AND TO1=:da", {"cod": id,"da": results[i][1]})
+            conn.commit()
+            conn.close()            
+            return(results[i][1])	
+	
+def from_us():	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM RAZ")
+    results = cursor.fetchall()
+    conn.close()
+    bs=[]
+    for i in range(0,len(results)):
+        bs.append(results[i][0])
+    return(bs)   
+
+   
+def razgovor_go(from1,to1):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into RAZ values (:a1, :a2) ", {"a1": from1,"a2": to1})
+    conn.commit()
+    conn.close()     
+
+def chek_kod(kod):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT CL_ID FROM ZAI WHERE CODE=:id",{"id": kod})
+    results = cursor.fetchall()
+    conn.close()
+    if len(results)==0:
+       return(0)
+    else:
+       return(results[0][0])	
+
+
+	
+	
+def zaprosi_delete(id,zp_id):		
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ZAI WHERE CL_ID=:id",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    text=results[zp_id][3]	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ZAI WHERE CL_ID=:id AND TEXT = :text", {"id": id,"text": text})
+    conn.commit()
+    conn.close() 
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM Thread WHERE CL_ID=:id AND TEXT = :text", {"id": id,"text": text})
+    conn.commit()
+    conn.close() 	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ALL_COD WHERE COD = :cod", {"cod": results[zp_id][1]})
+    conn.commit()
+    conn.close() 
+    mid=pickle.loads(results[zp_id][2])
+    for i in range(0,len(mid[0])):
+        try:
+            msg = bot.delete_message(mid[0][i],mid[1][i])
+        except Exception:
+            aa=1
+	
+def zaprosi_cl(id):	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ZAI WHERE CL_ID=:id",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    return(results)	
+	
+def dobavit_poi1(id,text,ref):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT TEMA FROM ZAI WHERE CL_ID=:id AND TEXT='' ",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    tema=results[0][0]
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM GROUPS WHERE TEMA =:id",{"id": tema})
+    results = cursor.fetchall()
+    conn.close() 
+    send_array=[]
+    message_array=[]
+    for i in range(0,len(results)):
+        if results[i][3]==0:
+            send_array.append(results[i][0])
+            msg = bot.send_message(results[i][0],'Новый клиент\nОписание:\n'+text+'\n\nКод для связи с клиентом: '+ref)	
+            message_array.append(msg.message_id)	
+        else:
+            tt=int(time.time())
+            tt=tt+(results[i][3]*3600)
+            conn = sqlite3.connect('CONV.sqlite')
+            cursor = conn.cursor()
+            cursor.execute("insert into Thread values (:a1, :a2, :a3, :a4, :a5) ", {"a1": text,"a2": tt,"a3": id, "a4":results[i][0],"a5": ref})
+            conn.commit()
+            conn.close()            			
+    print(send_array)
+    print(message_array)
+    mid=[]
+    mid.append(send_array)
+    mid.append(message_array)
+    mid = pickle.dumps(mid)
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE ZAI SET TEXT = :time, CODE = :ref, MESSAGE_ID = :mid WHERE CL_ID =:id AND TEXT = '' ",{"id": id,"time": text,"ref": ref,"mid": mid})
+    conn.commit()
+    conn.close()  	
+	
+def refund1():
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT COD FROM ALL_COD ")
+    results = cursor.fetchall()
+    conn.close()
+    reflist=results
+    gh=1
+    while gh==1:
+            chars=string.ascii_uppercase + string.digits
+            zz=''.join(random.choice(chars) for _ in range(8))   
+            if zz not in reflist:
+                conn = sqlite3.connect('CONV.sqlite')
+                cursor = conn.cursor()
+                cursor.execute("insert into ALL_COD values (:a1) ", {"a1": zz})
+                conn.commit()
+                conn.close()                
+                return(zz)	
+	            
+	
+def   dobavit_poi(id,tema):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into ZAI values (:a1, :a2, :a3, :a4, :a5) ", {"a1": id,"a2": '',"a3": '',"a4": '',"a5": tema})
+    conn.commit()
+    conn.close() 
+	
+	
+def groups_tems():	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT TEMA FROM GROUPS")
+    results = cursor.fetchall()
+    conn.close()
+    zz=list(set(results))
+    return(zz)   
+
+
+
+	
+def delete_group(id):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM GROUPS WHERE GROUP_ID=:id", {"id": id})
+    conn.commit()
+    conn.close()  	
+	
+	
+def ch_tema(id,time):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE GROUPS SET TEMA = :time WHERE GROUP_ID =:id",{"id": id,"time": time})
+    conn.commit()
+    conn.close()  	
+	
+def ch_zaderjku(id,time):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE GROUPS SET TIME = :time WHERE GROUP_ID =:id",{"id": id,"time": time})
+    conn.commit()
+    conn.close()  	
+	
+def chek_group(id):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM GROUPS WHERE GROUP_ID =:id",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    zz=results[0]
+    return(zz)     	
+	
+def add_group(grou):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into GROUPS values (:a1, :a2, :a3, :a4) ", {"a1": grou.id,"a2": grou.name,"a3": grou.tema,"a4": grou.time,})
+    conn.commit()
+    conn.close()    	
+	
 
 def all_oprosi():
     conn = sqlite3.connect('BD.sqlite')
@@ -453,6 +876,11 @@ def   delete_vopros(num,opr_id):
 
 
 def  rassilka_oprosa(opr_id):
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM OTVETI WHERE OPROS_ID=:id", {"id": opr_id})
+    conn.commit()
+    conn.close()     
     conn = sqlite3.connect('BD.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT TEXT FROM VOPROSI WHERE OPROS_ID = :id", {"id": opr_id})
@@ -666,7 +1094,16 @@ def  rassilka_po_filtru(txt,opr_id):
     print(users_big)
     t = threading.Thread(target=clock1, args=(txt,users_big))
     t.start()
-        
+ 
+
+
+def all_groups():
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM GROUPS")
+    results = cursor.fetchall()
+    conn.close() 
+    return(results)    
       	
 def clock1(txt,arr):
     for i in range(0,len(arr)):
@@ -675,10 +1112,70 @@ def clock1(txt,arr):
         msg=bot.send_message(arr[i],txt)
 	
 	
+def forserer():
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    array=[]
+    now_time=int(time.time())
+    cursor.execute("SELECT * FROM Thread WHERE TIME <= :time",{"time":now_time})
+    results = cursor.fetchall()	
+    print(results)
+    cursor.execute("DELETE FROM Thread WHERE TIME <= :time",{"time":now_time})
+    conn.commit()    
+    conn.close()
+    for i in range(0,len(results)):
+            client_id=results[i][2]
+            grid=results[i][3]
+            msg = bot.send_message(results[i][3],'Новый клиент\nОписание:\n'+results[i][0]+'\n\nКод для связи с клиентом: '+results[i][4])	
+            msid=msg.message_id	 
+            conn = sqlite3.connect('CONV.sqlite')
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM ZAI WHERE CL_ID=:id AND TEXT=:text ",{"id": client_id,"text": results[i][0]})
+            results1 = cursor.fetchall()
+            conn.close()
+            mid=results1[0][2]		
+            mid=pickle.loads(mid)
+            mid[0].append(grid)
+            mid[1].append(msid)
+            print(mid)
+            mid = pickle.dumps(mid)
+            conn = sqlite3.connect('CONV.sqlite')
+            cursor = conn.cursor()
+            cursor.execute("UPDATE ZAI SET MESSAGE_ID = :mid WHERE CL_ID =:id AND TEXT = :text ",{"id": client_id,"mid": mid,"text": results[i][0],"mid": mid})
+            conn.commit()
+            conn.close()            			
+
+			
+schedule.every(1).minutes.do(forserer)
+def lal():
+    while 1:
+        schedule.run_pending()
+        time.sleep(1)
+_thread.start_new_thread(lal,())	
 	
-	
-	
-	
+
+
+
+
+
+
+@bot.message_handler(content_types=['document'])
+def photoget(message):
+    global wb, wb1, sheet, sheet1, what_change, admin_id
+    if what_change=='t'	and message.chat.id==admin_id:
+        what_change=''
+        fileid=(message.document.file_id)
+        bb=bot.get_file(fileid)
+        bb=bb.file_path
+        logo = urllib.request.urlopen("https://api.telegram.org/file/bot"+TOKEN+"/"+bb).read()
+        f = open('leng.xlsx', "wb")
+        f.write(logo)
+        f.close()
+        wb1 = openpyxl.load_workbook(filename = 'leng.xlsx')
+        sheet1 = wb1['test']
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,15),lengstr(1,16),lengstr(1,17),lengstr(1,33),lengstr(1,42)]])
+        msg = bot.send_message(message.chat.id, lengstr(1,73),reply_markup=keyboard) 
 	
 if __name__ == '__main__':
 
