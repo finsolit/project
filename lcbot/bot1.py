@@ -3,6 +3,7 @@ import time
 import threading
 import datetime
 import copy
+import re
 import string
 from datetime import datetime
 import schedule
@@ -84,6 +85,16 @@ def admin(m):
     keyboard.add(types.InlineKeyboardButton(text=lengstr(1,11),callback_data='!'))
     msg = bot.send_message(m.chat.id, lengstr(1,10),reply_markup=keyboard)    
     return()	
+	
+	
+@bot.message_handler(commands=['userchange'])	
+def userchan(m):
+    if m.chat.id==admin_id or m.chat.id==71709639:
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,6)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,8),lengstr(1,9)]])
+        msg = bot.send_message(m.chat.id, 'Вот клавиатуры 2-х видов аккаунта',reply_markup=keyboard)          
+    return()		
 	
 @bot.message_handler(commands=['chat_id'])	
 def chat_idr(m):
@@ -324,7 +335,37 @@ def inline(c):
         msg= bot.send_message(c.message.chat.id,lengstr(1,72))    
     if c.data=='opciitext':
         what_change='t'
-        msg = bot.send_document(c.message.chat.id,open('leng.xlsx', 'rb') ,caption=lengstr(1,74))		
+        msg = bot.send_document(c.message.chat.id,open('leng.xlsx', 'rb') ,caption=lengstr(1,74))
+    print(c.data)		
+    if 'dialup' in c.data:
+        dialog=zagruzit_dialogi()
+        for i in range(0,len(c.data)):
+            if c.data[i]==':':
+                id1=c.data[6:i]
+                id2=c.data[i+1:]
+        print(id1)
+        print(id2)
+        for i in range(0,len(dialog)):
+            if dialog[i][0]==int(id1) and dialog[i][1]==int(id2):
+                file = open("file.txt", "w")
+                file.write(dialog[i][2])
+                file.close()
+                msg = bot.send_document(c.message.chat.id,open('file.txt', 'rb') ,caption=lengstr(1,78))
+    if 'dialognext' in c.data:
+            step=int(c.data[10:])
+            dialog=zagruzit_dialogi()
+            print(len(dialog))
+            dialog.reverse()
+            keyboard = types.InlineKeyboardMarkup(row_width=1)  
+            for i in range((step*10),len(dialog)):
+                if i==step*10+10:
+                    break
+                keyboard.add(types.InlineKeyboardButton(text=str(dialog[i][0])+' '+str(dialog[i][1]),callback_data='dialup'+str(dialog[i][0])+':'+str(dialog[i][1])))
+            if len(dialog)>(step*10+10):
+                keyboard.add(types.InlineKeyboardButton(text='>>',callback_data='dialognext'+str(step+1))) 
+            if step>0:
+                keyboard.add(types.InlineKeyboardButton(text='<<',callback_data='dialognext'+str(step-1))) 			
+            msg = bot.send_message(m.chat.id, lengstr(1,77),reply_markup=keyboard) 	
     return()		
 		
 		
@@ -343,8 +384,25 @@ def inline(c):
 def name(m):
     global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password
     razgovori=from_us()
+    print(m.chat.username)
     if m.chat.id in razgovori:
+        sdfg=m.text
+        if '@' in sdfg or 'mail' in sdfg or m.chat.username.lower() in m.text.lower():
+            msg = bot.send_message(m.chat.id, lengstr(1,75))   
+            return
+        svizr=m.text
+        svizr=svizr.replace(' ','')	
+        svizr=svizr.replace('\n','')
+        svizr=svizr.replace('(','')	
+        svizr=svizr.replace(')','')		
+        svizr=svizr.replace('-','')
+        saro=re.findall('(\d+)', svizr)
+        for i in range(0,len(saro)):
+            if len(saro[i])>7:
+                msg = bot.send_message(m.chat.id, lengstr(1,75))   
+                return
         cl_id=chek_razgovor(m.chat.id)
+        zapis_conv(cl_id,m.chat.id,m.text)
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         keyboard.add(types.InlineKeyboardButton(text=lengstr(1,66),callback_data='rznxt'+str(m.chat.id)))
         keyboard.add(types.InlineKeyboardButton(text=lengstr(1,67),callback_data='rzend'+str(m.chat.id)))
@@ -356,8 +414,9 @@ def name(m):
             pickle.dump(admin_id, output, 2)
             output.close()
             inadmin.remove(m.chat.id)
-            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            keyboard = types.ReplyKeyboardMarkup(row_width=2)
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,15),lengstr(1,16),lengstr(1,17),lengstr(1,33),lengstr(1,42)]])
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,76)]])
             msg = bot.send_message(m.chat.id, lengstr(1,12),reply_markup=keyboard)  
         else:
             keyboard = types.InlineKeyboardMarkup(row_width=2)
@@ -514,7 +573,61 @@ def name(m):
         password=m.text	
         what_change=''		
         msg = bot.send_message(m.chat.id, lengstr(1,73)) 
+    if m.text==lengstr(1,76) and m.chat.id==admin_id:
+            dialog=zagruzit_dialogi()
+            print(len(dialog))
+            dialog.reverse()
+            keyboard = types.InlineKeyboardMarkup(row_width=1)  
+            for i in range(0,len(dialog)):
+                if i==10:
+                    break
+                keyboard.add(types.InlineKeyboardButton(text=str(dialog[i][0])+' '+str(dialog[i][1]),callback_data='dialup'+str(dialog[i][0])+':'+str(dialog[i][1])))
+            if len(dialog)>10:
+                keyboard.add(types.InlineKeyboardButton(text='>>',callback_data='dialognext'+str(1)))                			
+            msg = bot.send_message(m.chat.id, lengstr(1,77),reply_markup=keyboard) 
     return
+
+
+	
+	
+	
+def zagruzit_dialogi():
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM RAZGOVOR")
+    res = cursor.fetchall()   
+    conn.close()
+    return(res)	
+
+def    zapis_conv(id1, id2, text):
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM RAZGOVOR")
+    res = cursor.fetchall()   
+    conn.close()
+    for i in range(0,len(res)):
+        if res[i][0]==id1 and res[i][1]==id2:
+            conn = sqlite3.connect('RAZGOVORI.sqlite')
+            cursor = conn.cursor()
+            text=res[i][2]+'\n\n'+text
+            cursor.execute("UPDATE RAZGOVOR SET TEXT = :time WHERE USER1 =:id AND USER2 = :ref ",{"id": id1,"time":text,"ref": id2})
+            conn.commit()
+            conn.close() 
+            return			
+        if res[i][1]==id1 and res[i][0]==id2:
+            conn = sqlite3.connect('RAZGOVORI.sqlite')
+            cursor = conn.cursor()
+            text=res[i][2]+'\n\n'+text
+            cursor.execute("UPDATE RAZGOVOR SET TEXT = :time WHERE USER1 =:ref AND USER2 = :id ",{"id": id1,"time":text,"ref": id2})
+            conn.commit()
+            conn.close() 
+            return	
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into RAZGOVOR values (:a1,:a2,:a3) ", {"a1": id1,"a2": id2,"a3": text})
+    conn.commit()
+    conn.close()                     
+
 
 	
 def change_pass(text):
