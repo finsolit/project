@@ -1,10 +1,10 @@
 ﻿import telebot
 import time
+import cherrypy
 import threading
 import datetime
 import copy
 import re
-import cherrypy
 import string
 from datetime import datetime
 import schedule
@@ -16,7 +16,7 @@ import urllib
 import random
 import sqlite3
 import openpyxl
-global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change
+global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, opcii_menu, otz_g,add_otz,prs_otz
 class group:
     id=0
     name=''
@@ -31,16 +31,24 @@ def chek_pass():
     conn.close()	
     print(results[0][0])
     return(results[0][0])	
-	
+input = open('opt.pkl', 'rb')
+opcii_menu = pickle.load(input)
+input.close()
+#output = open('opt.pkl', 'wb')
+#pickle.dump(opcii_menu, output, 2)
+#output.close()	
 vvod_koda=[]
 change_group=''
 add_poi=[]
+add_otz=[]
 add_vopros_admin=0
 oprcall=1
 add_opr=0
+otz_g=-1001252887434
 new_group=0
 inadmin=[]
 filter=[]
+prs_otz=[]
 txtrassilki=''
 password=chek_pass()
 input = open('admin.pkl', 'rb')
@@ -84,41 +92,67 @@ class WebhookServer(object):
             return ''
         else:
             raise cherrypy.HTTPError(403)
-
 # Handle '/start' and '/help'
+
+
+def extract_unique_code(text):
+    # Extracts the unique_code from the sent /start command.
+    return text.split()[1] if len(text.split()) > 1 else None
+
+
+
 @bot.message_handler(commands=['help', 'start'])
 def start(message):
-    gg=start_prov(message.chat.id)
-    if gg==0:
+    sg=''
+    sg=add_client(message.chat.id)
+    wg=wh_h(message.chat.id)
+    if sg=='hh':
+        ll=find_leng(message.chat.id)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        if wg==0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
+        for i in range(0,4):
+            if opcii_menu[i]==1:
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+        if wg==1:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
+        msg = bot.send_message(message.chat.id, lengstr(ll,7),reply_markup=keyboard) 
+    else:
         keyboard = types.InlineKeyboardMarkup(row_width=2)
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,3),callback_data='%'),
-                     types.InlineKeyboardButton(text=lengstr(1,4),callback_data='@'))
-        msg = bot.send_message(message.chat.id, lengstr(1,2),reply_markup=keyboard)
-    elif gg==1:
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,6)]])
-        msg = bot.send_message(message.chat.id, lengstr(1,5),reply_markup=keyboard) 
-    else:        
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,8),lengstr(1,9)]])
-        msg = bot.send_message(message.chat.id, lengstr(1,7),reply_markup=keyboard) 
+        keyboard.add(types.InlineKeyboardButton(text='Русский',callback_data='chose_leng_ru'))
+        keyboard.add(types.InlineKeyboardButton(text='Українська',callback_data='chose_leng_ua'))
+        msg = bot.send_message(message.chat.id, 'Выберите язык\nОберіть мову',reply_markup=keyboard)         
 	
 	
 @bot.message_handler(commands=['admin'])	
 def admin(m):
+    ll=find_leng(m.chat.id)
     inadmin.append(m.chat.id)
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(types.InlineKeyboardButton(text=lengstr(1,11),callback_data='!'))
-    msg = bot.send_message(m.chat.id, lengstr(1,10),reply_markup=keyboard)    
+    keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,11),callback_data='!'))
+    msg = bot.send_message(m.chat.id, lengstr(ll,10),reply_markup=keyboard)    
     return()	
+
+@bot.message_handler(commands=['userstat'])	
+def userstat(m):
+    as1=all_users()   
+    temi=groups_tems()  
+    print(temi)	
+    sk='Количество пользователей: '+as1+'\n'
+    for i in range(0,len(temi)):
+        chekv=col_vo_zaprosov(temi[i][0])
+        sk+=temi[i][0]+' Кол-во запросов: '+chekv+'\n'
+    msg = bot.send_message(m.chat.id, sk)  
+    return()
 	
 	
 @bot.message_handler(commands=['userchange'])	
 def userchan(m):
     if m.chat.id==admin_id or m.chat.id==71709639:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,6)]])
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,8),lengstr(1,9)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,6)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,9)]])
         msg = bot.send_message(m.chat.id, 'Вот клавиатуры 2-х видов аккаунта',reply_markup=keyboard)          
     return()		
 	
@@ -130,9 +164,9 @@ def chat_idr(m):
             ngroup.id=m.chat.id  
             ngroup.name=m.chat.title
             new_group=2
-            msg = bot.send_message(admin_id, lengstr(1,47))
+            msg = bot.send_message(admin_id, lengstr(ll,47))
         except Exception:
-            msg = bot.send_message(admin_id, lengstr(1,48)) 
+            msg = bot.send_message(admin_id, lengstr(ll,48)) 
     return()	
 
 	
@@ -144,8 +178,39 @@ def repeat_all_messages(message):
 	
 @bot.callback_query_handler(func=lambda c:True)
 def inline(c):
-    global oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, what_change
+    global oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, what_change, opcii_menu, otz_g
     bib=c.message.message_id
+    if c.data=='chose_leng_ru':
+        user_leng(c.message.chat.id,1)
+        wg=wh_h(c.message.chat.id)
+        ll=1
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        if wg==0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
+        for i in range(0,4):
+            if opcii_menu[i]==1:
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+        if wg==1:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,7),reply_markup=keyboard)
+        return()
+    if c.data=='chose_leng_ua':
+        user_leng(c.message.chat.id,2)
+        wg=wh_h(c.message.chat.id)
+        ll=2
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        if wg==0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
+        for i in range(0,4):
+            if opcii_menu[i]==1:
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+        if wg==1:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,7),reply_markup=keyboard)
+        return
+    ll=find_leng(c.message.chat.id)
     if 'otv' in c.data:
         print(c.data)
         for i in range(0,len(c.data)):
@@ -159,21 +224,41 @@ def inline(c):
         print(c.message.chat.id,opr_id,vopros_id,otvet_id)
         chek_next_question(c.message.chat.id,bib,opr_id,vopros_id)
         return
+    if c.data == 'do_otz':
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='extotz') for name in [lengstr(ll,40)]])
+        add_otz.append(c.message.chat.id)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,93),reply_markup=keyboard) 
+    if c.data == 'prosm_otz':
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='extotzs') for name in [lengstr(ll,40)]])
+        prs_otz.append(c.message.chat.id)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,96),reply_markup=keyboard) 
+    if c.data =='extotz':
+        add_otz.remove(c.message.chat.id)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,41)) 	
+    if c.data =='extotzs':
+        prs_otz.remove(c.message.chat.id)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,41)) 
     if c.data=='!':
         inadmin.remove(c.message.chat.id)
-        msg = bot.send_message(c.message.chat.id, lengstr(1,14))   
-        return		
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,14))   
+        return
+    if c.data=='all_users_say':
+        print('ia zap clock2')
+        clock2(c.message.chat.id)  
+        return      	
     if c.data=='%':
         add_urist(c.message.chat.id)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,6)]])
-        msg = bot.send_message(c.message.chat.id, lengstr(1,5),reply_markup=keyboard) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,6)]])
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,5),reply_markup=keyboard) 
         return		
     if c.data=='@':
         add_client(c.message.chat.id)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,8),lengstr(1,9)]])
-        msg = bot.send_message(c.message.chat.id, lengstr(1,7),reply_markup=keyboard) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,9)]])
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,7),reply_markup=keyboard) 
         return
     if c.data=='addopr':
         oprs+=1
@@ -181,17 +266,17 @@ def inline(c):
         pickle.dump(oprs, output, 2)
         output.close()	
         add_opr=1
-        msg = bot.send_message(c.message.chat.id, lengstr(1,20))  
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,20))  
         return
     if c.data=='extxt':
-        msg = bot.send_message(c.message.chat.id, lengstr(1,41))   
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,41))   
         txtrassilki=''		
         return
 ######################## Vvod teksta rassilki
     if c.data=='txtras':
         keyboard = types.InlineKeyboardMarkup(row_width=2)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='extxt') for name in [lengstr(1,40)]])
-        msg = bot.send_message(c.message.chat.id, lengstr(1,39),reply_markup=keyboard)   
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='extxt') for name in [lengstr(ll,40)]])
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,39),reply_markup=keyboard)   
         txtrassilki=1		
         return
 ################################################
@@ -202,15 +287,15 @@ def inline(c):
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='cop'+str(dsa[i][0])) for name in [dsa[i][1]]]) 
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addopr') for name in [lengstr(1,19)]])                 
-            msg = bot.send_message(c.message.chat.id, lengstr(1,18)+' '+str(len(dsa)),reply_markup=keyboard) 
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addopr') for name in [lengstr(ll,19)]])                 
+            msg = bot.send_message(c.message.chat.id, lengstr(ll,18)+' '+str(len(dsa)),reply_markup=keyboard) 
             return()			
     if 'delopr' in c.data:
         opr_id=int(c.data[:-6])	
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         keyboard.add(types.InlineKeyboardButton(text='Нет',callback_data='cop'+str(opr_id)),
                     types.InlineKeyboardButton(text='Да',callback_data=str(opr_id)+'ddelopr'))
-        msg = bot.send_message(c.message.chat.id, lengstr(1,24),reply_markup=keyboard)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,24),reply_markup=keyboard)
         return
     if 'addvopr' in c.data:
         opr_id=int(c.data[:-7])	
@@ -218,19 +303,19 @@ def inline(c):
         work_with_opr=opr_id
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         keyboard.add(types.InlineKeyboardButton(text='Отмена',callback_data='cop'+str(opr_id)))
-        msg = bot.send_message(c.message.chat.id, lengstr(1,25),reply_markup=keyboard)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,25),reply_markup=keyboard)
         return
     if 'razoslat' in c.data:
         opr_id=int(c.data[:-8])	
         keyboard = types.InlineKeyboardMarkup(row_width=2)
         keyboard.add(types.InlineKeyboardButton(text='Нет',callback_data='cop'+str(opr_id)),
                     types.InlineKeyboardButton(text='Да',callback_data=str(opr_id)+'razuslat'))
-        msg = bot.send_message(c.message.chat.id, lengstr(1,32),reply_markup=keyboard)
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,32),reply_markup=keyboard)
         return    
     if 'razuslat' in c.data:
         opr_id=int(c.data[:-8])	
         rassilka_oprosa(opr_id)	
-        msg = bot.send_message(c.message.chat.id, lengstr(1,29))
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,29))
     if 'delvopr' in c.data:
         opr_id=int(c.data[:-7])
         zz=''		
@@ -240,7 +325,7 @@ def inline(c):
             zz+=str(i+1)+') '+spisok[i][0]+'\n'
             keyboard.add(types.InlineKeyboardButton(text=str(i+1),callback_data='dzx'+str(i)+':'+str(opr_id)))             
         keyboard.add(types.InlineKeyboardButton(text='Отмена',callback_data='cop'+str(opr_id)))
-        msg = bot.send_message(c.message.chat.id, lengstr(1,27)+'\n\n'+zz,reply_markup=keyboard) 
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,27)+'\n\n'+zz,reply_markup=keyboard) 
         return		
     if 'dzx' in c.data:
         for i in range(0,len(c.data)):
@@ -248,7 +333,7 @@ def inline(c):
                 num=c.data[3:i]
                 opr_id=c.data[i+1:]
         delete_vopros(num,opr_id)
-        msg = bot.send_message(c.message.chat.id, lengstr(1,28))	
+        msg = bot.send_message(c.message.chat.id, lengstr(ll,28))	
         return		
     if 'cop' in c.data:
         opr_id=int(c.data[3:])
@@ -274,9 +359,9 @@ def inline(c):
         work_with_opr=opr_id
         kr=chek_op(opr_id)
         if kr==1:
-           zz=lengstr(1,37)
+           zz=lengstr(ll,37)
         else:
-           zz=lengstr(1,36)
+           zz=lengstr(ll,36)
            msg = bot.send_message(c.message.chat.id, zz) 
            return	
         create_filter(opr_id)
@@ -303,7 +388,7 @@ def inline(c):
     if c.data=='addgroup':
         new_group=1  
         ngroup=group()
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,45))      
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,45))      
         return	
     if 'grp' in c.data:
         zcf=chek_group(int(c.data[3:]))	
@@ -316,35 +401,48 @@ def inline(c):
     if 'gzadr' in c.data:
         change_group='z'+c.data[5:]
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,40),callback_data='grp'+c.data[5:])) 
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,50),reply_markup=keyboard)    
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,40),callback_data='grp'+c.data[5:])) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,50),reply_markup=keyboard)    
     if 'gtema' in c.data:
         change_group='t'+c.data[5:]
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,40),callback_data='grp'+c.data[5:])) 
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,52),reply_markup=keyboard)       
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,40),callback_data='grp'+c.data[5:])) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,52),reply_markup=keyboard)       
     if 'gdelt' in c.data:
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
         keyboard.add(types.InlineKeyboardButton(text='Нет',callback_data='grp'+c.data[5:]),types.InlineKeyboardButton(text='Да',callback_data='ddt'+c.data[5:])) 
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,53),reply_markup=keyboard)
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,53),reply_markup=keyboard)
     if 'ddt' in c.data:
         delete_group(int(c.data[3:]))
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,54)) 
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,54)) 
     if 'poisk' in c.data:
         tema=c.data[5:]
         dobavit_poi(c.message.chat.id,tema)	
         add_poi.append(c.message.chat.id)
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,57)) 	
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,57)) 	
     if 'zaprs' in c.data:
         zp_id=int(c.data[5:])
         zaprosi=zaprosi_cl(c.message.chat.id)
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,60),callback_data='zpdel'+str(zp_id)))		
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,59)+'\n'+zaprosi[zp_id][3],reply_markup=keyboard) 	
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,99),callback_data='zpdubl'+str(zp_id)))
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,60),callback_data='zpdel'+str(zp_id)))
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,100),callback_data='zpobc'+str(zp_id)))
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,101),callback_data='zpnzd'))		
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,59)+'\n'+zaprosi[zp_id][3],reply_markup=keyboard) 	
+    if 'zpnzd'==c.data:
+            zaprosi=zaprosi_cl(c.message.chat.id)
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(zaprosi)):
+                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='zaprs'+str(i)) for name in [zaprosi[i][3][:29]]])                 
+            msg = bot.send_message(c.message.chat.id, lengstr(ll,58),reply_markup=keyboard)        
     if 'zpdel' in c.data:
         zp_id=int(c.data[5:])
         zaprosi=zaprosi_delete(c.message.chat.id,zp_id)	
-        msg=  bot.send_message(c.message.chat.id, lengstr(1,61)) 	
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,61)) 
+    if 'zpdubl' in c.data:
+        zp_id=int(c.data[6:])
+        zaprosi=zaprosi_dunl(c.message.chat.id,zp_id)	
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,102)) 			
     if 'rznxt' in c.data:
         zp_id=int(c.data[5:])
         razgovor_go(c.message.chat.id,zp_id)
@@ -354,14 +452,14 @@ def inline(c):
         zp_id=int(c.data[5:])
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         msg=  bot.edit_message_reply_markup(c.message.chat.id,bib,keyboard) 
-        msg= bot.send_message(c.message.chat.id,lengstr(1,68)) 	
-        msg= bot.send_message(zp_id,lengstr(1,68))		
+        msg= bot.send_message(c.message.chat.id,lengstr(ll,68)) 	
+        msg= bot.send_message(zp_id,lengstr(ll,68))		
     if c.data=='opciipass':
         what_change='p'
-        msg= bot.send_message(c.message.chat.id,lengstr(1,72))    
+        msg= bot.send_message(c.message.chat.id,lengstr(ll,72))    
     if c.data=='opciitext':
         what_change='t'
-        msg = bot.send_document(c.message.chat.id,open('leng.xlsx', 'rb') ,caption=lengstr(1,74))
+        msg = bot.send_document(c.message.chat.id,open('leng.xlsx', 'rb') ,caption=lengstr(ll,74))
     print(c.data)		
     if 'dialup' in c.data:
         dialog=zagruzit_dialogi()
@@ -376,7 +474,7 @@ def inline(c):
                 file = open("file.txt", "w")
                 file.write(dialog[i][2])
                 file.close()
-                msg = bot.send_document(c.message.chat.id,open('file.txt', 'rb') ,caption=lengstr(1,78))
+                msg = bot.send_document(c.message.chat.id,open('file.txt', 'rb') ,caption=lengstr(ll,78))
     if 'dialognext' in c.data:
             step=int(c.data[10:])
             dialog=zagruzit_dialogi()
@@ -391,7 +489,32 @@ def inline(c):
                 keyboard.add(types.InlineKeyboardButton(text='>>',callback_data='dialognext'+str(step+1))) 
             if step>0:
                 keyboard.add(types.InlineKeyboardButton(text='<<',callback_data='dialognext'+str(step-1))) 			
-            msg = bot.send_message(m.chat.id, lengstr(1,77),reply_markup=keyboard) 	
+            msg = bot.send_message(m.chat.id, lengstr(ll,77),reply_markup=keyboard) 
+    if 'opcii_mnu' in c.data:
+        mnu_change=int(c.data[-1])-1	
+        if opcii_menu[mnu_change]==1:
+            opcii_menu[mnu_change]=0
+        else:
+            opcii_menu[mnu_change]=1
+        output = open('opt.pkl', 'wb')
+        pickle.dump(opcii_menu, output, 2)
+        output.close()
+        keyboard = types.InlineKeyboardMarkup(row_width=1)  
+        opcii_smile=['','','','']
+        print(opcii_menu)
+        for i in range(0,4):
+            print(opcii_menu[i])
+            if opcii_menu[i]==1:
+                   opcii_smile[i]='✅'
+            else:
+                   opcii_smile[i]='❌'
+        print(opcii_smile)
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[0],callback_data='opcii_mnu1') for name in [lengstr(ll,82)]]) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[1],callback_data='opcii_mnu2') for name in [lengstr(ll,83)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[2],callback_data='opcii_mnu3') for name in [lengstr(ll,84)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[3],callback_data='opcii_mnu4') for name in [lengstr(ll,85)]])
+        keyboard.add(types.InlineKeyboardButton(text='Оповестить всех пользователей',callback_data='all_users_say'))  
+        msg=  bot.edit_message_reply_markup(c.message.chat.id,bib,reply_markup=keyboard)		
     return()		
 		
 		
@@ -408,13 +531,41 @@ def inline(c):
 		
 		
 def name(m):
-    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password
+    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password, opcii_menu, otz_g
     razgovori=from_us()
-    print(m.chat.username)
+    ll=find_leng(m.chat.id)
+    print(m)
+    if m.chat.id in add_otz:
+        otzivka=m.text+' '
+        first=-1
+        usrt=''
+        for i in range(0,len(otzivka)):
+            if otzivka[i]=='@':
+                first=i
+            if first>-1 and otzivka[i]==' ':
+                usrt=otzivka[first:i].lower()
+                break
+        print(usrt)
+        if usrt=='':
+            msg = bot.send_message(m.chat.id, lengstr(ll,95))  
+            return					
+        add_otz.remove(m.chat.id)
+        msg =bot.forward_message(otz_g,m.chat.id, m.message_id)
+        add_otz_bd(usrt,m.chat.id, msg.message_id)
+        msg = bot.send_message(m.chat.id, lengstr(ll,97))
+    if m.chat.id in prs_otz:
+        user_p=m.text.lower()
+        solv=poisk_otz(user_p)
+        if len(solv)==0:
+            msg=bot.send_message(m.chat.id, lengstr(ll,94))
+        else:
+            for i in range(0,len(solv)):
+                msg = bot.forward_message(m.chat.id,otz_g,solv[i][1])
+        prs_otz.remove(m.chat.id)
     if m.chat.id in razgovori:
         sdfg=m.text
         if '@' in sdfg or 'mail' in sdfg or m.chat.username.lower() in m.text.lower():
-            msg = bot.send_message(m.chat.id, lengstr(1,75))   
+            msg = bot.send_message(m.chat.id, lengstr(ll,75))   
             return
         svizr=m.text
         svizr=svizr.replace(' ','')	
@@ -425,14 +576,14 @@ def name(m):
         saro=re.findall('(\d+)', svizr)
         for i in range(0,len(saro)):
             if len(saro[i])>7:
-                msg = bot.send_message(m.chat.id, lengstr(1,75))   
+                msg = bot.send_message(m.chat.id, lengstr(ll,75))   
                 return
         cl_id=chek_razgovor(m.chat.id)
         zapis_conv(cl_id,m.chat.id,m.text)
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,66),callback_data='rznxt'+str(m.chat.id)))
-        keyboard.add(types.InlineKeyboardButton(text=lengstr(1,67),callback_data='rzend'+str(m.chat.id)))
-        msg = bot.send_message(cl_id, lengstr(1,65)+str(m.chat.id)+'\n\n'+m.text,reply_markup=keyboard)
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,66),callback_data='rznxt'+str(m.chat.id)))
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,67),callback_data='rzend'+str(m.chat.id)))
+        msg = bot.send_message(cl_id, lengstr(ll,65)+str(m.chat.id)+'\n\n'+m.text,reply_markup=keyboard)
     if m.chat.id in inadmin:
         if m.text==password:
             admin_id=m.chat.id
@@ -441,42 +592,75 @@ def name(m):
             output.close()
             inadmin.remove(m.chat.id)
             keyboard = types.ReplyKeyboardMarkup(row_width=2)
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,15),lengstr(1,16),lengstr(1,17),lengstr(1,33),lengstr(1,42)]])
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,76)]])
-            msg = bot.send_message(m.chat.id, lengstr(1,12),reply_markup=keyboard)  
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,15),lengstr(ll,16),lengstr(ll,17),lengstr(ll,33),lengstr(ll,42),lengstr(ll,86)]])
+            msg = bot.send_message(m.chat.id, lengstr(ll,12),reply_markup=keyboard)  
         else:
             keyboard = types.InlineKeyboardMarkup(row_width=2)
-            keyboard.add(types.InlineKeyboardButton(text=lengstr(1,11),callback_data='!'))
-            msg = bot.send_message(m.chat.id, lengstr(1,13),reply_markup=keyboard) 
+            keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,11),callback_data='!'))
+            msg = bot.send_message(m.chat.id, lengstr(ll,13),reply_markup=keyboard) 
     if m.chat.id in vvod_koda:
         vvod_koda.remove(m.chat.id)
         kod=m.text
         id_client=chek_kod(kod)
         if id_client==0:
-            msg = bot.send_message(m.chat.id, lengstr(1,63))
+            msg = bot.send_message(m.chat.id, lengstr(ll,63))
         else:
-            msg = bot.send_message(m.chat.id, lengstr(1,64))
-            razgovor_go(m.chat.id,id_client)			
-    if m.text==lengstr(1,8):
-            temi=groups_tems()
-            keyboard = types.InlineKeyboardMarkup(row_width=1)
-            for i in range(0,len(temi)):
-                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='poisk'+str(name)) for name in [temi[i][0]]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,55),reply_markup=keyboard) 
-    if m.text==lengstr(1,6):       
-            vvod_koda.append(m.chat.id)	
-            msg = bot.send_message(m.chat.id, lengstr(1,62)) 
-    if m.text==lengstr(1,9):
+            msg = bot.send_message(m.chat.id, lengstr(ll,64))
+            razgovor_go(m.chat.id,id_client)	
+    if m.text==lengstr(ll,80):
+        add_ww(m.chat.id)
+        wg=wh_h(m.chat.id)
+        print(wg)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        if wg==0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
+        for i in range(0,4):
+            if opcii_menu[i]==1:
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+        if wg==1:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
+        msg = bot.send_message(m.chat.id, lengstr(ll,87),reply_markup=keyboard) 
+    if m.text==lengstr(ll,81):
+        keyboard = types.InlineKeyboardMarkup()
+        url_button = types.InlineKeyboardButton(text=lengstr(ll,103), url="https://t.me/LC_bot_test")
+        keyboard.add(url_button)
+        bot.send_message(m.chat.id, lengstr(ll,103), reply_markup=keyboard)
+######################### otzivi
+    if m.text==lengstr(ll,82):
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='prosm_otz') for name in [lengstr(ll,91)]]) 
+        keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='do_otz') for name in [lengstr(ll,92)]]) 
+        msg = bot.send_message(m.chat.id, lengstr(ll,82),reply_markup=keyboard)
+    if m.text==lengstr(ll,83):
+        msg = bot.send_message(m.chat.id, lengstr(ll,89))	
+    if m.text==lengstr(ll,84):
+        keyboard = types.InlineKeyboardMarkup()
+        url_button = types.InlineKeyboardButton(text=lengstr(ll,104), url="https://t.me/LC_bot_test")
+        keyboard.add(url_button)
+        bot.send_message(m.chat.id, lengstr(ll,104), reply_markup=keyboard)
+######################## nastroika zaprosov
+    if m.text==lengstr(ll,85):
             zaprosi=zaprosi_cl(m.chat.id)
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(zaprosi)):
                 keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='zaprs'+str(i)) for name in [zaprosi[i][3][:29]]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,58),reply_markup=keyboard) 
+            msg = bot.send_message(m.chat.id, lengstr(ll,58),reply_markup=keyboard)
+##########################
+    if m.text==lengstr(ll,8):
+            temi=groups_tems()
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(temi)):
+                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='poisk'+str(name)) for name in [temi[i][0]]])                 
+            msg = bot.send_message(m.chat.id, lengstr(ll,55),reply_markup=keyboard) 
+    if m.text==lengstr(ll,6):       
+            vvod_koda.append(m.chat.id)	
+            msg = bot.send_message(m.chat.id, lengstr(ll,62)) 
     if m.chat.id in add_poi:
         add_poi.remove(m.chat.id)	
         ref=refund1()
-        dobavit_poi1(m.chat.id,m.text,ref)
-        msg = bot.send_message(m.chat.id, lengstr(1,56)) 
+        dobavit_poi1(m.chat.id,m.text,ref,m.message_id)
+        msg = bot.send_message(m.chat.id, lengstr(ll,56)) 
     if add_vopros_admin==1 and m.chat.id==admin_id:
         zxvopros=m.text
         for i in range(0,len(zxvopros)):
@@ -516,12 +700,12 @@ def name(m):
         add_opr_in_db(m.text,oprs)
         work_with_opr=oprs
         add_opr=2
-        msg = bot.send_message(m.chat.id, lengstr(1,21))   
+        msg = bot.send_message(m.chat.id, lengstr(ll,21))   
         return
     if add_opr==2 and m.chat.id==admin_id:
         add_vopros(m.text,work_with_opr)
         add_opr=3
-        msg = bot.send_message(m.chat.id, lengstr(1,22)) 
+        msg = bot.send_message(m.chat.id, lengstr(ll,22)) 
         return	
     if add_opr==3 and m.chat.id==admin_id:
         otvet=[]
@@ -534,47 +718,47 @@ def name(m):
         otvet=pickle.dumps(otvet)
         add_otvet(otvet,work_with_opr)
         add_opr=0
-        msg = bot.send_message(m.chat.id, lengstr(1,23)) 
+        msg = bot.send_message(m.chat.id, lengstr(ll,23)) 
         return			
-    if lengstr(1,15)==m.text and m.chat.id==admin_id:
+    if lengstr(ll,15)==m.text and m.chat.id==admin_id:
             dsa=all_oprosi()
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='cop'+str(dsa[i][0])) for name in [dsa[i][1]]]) 
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addopr') for name in [lengstr(1,19)]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,18)+' '+str(len(dsa)),reply_markup=keyboard)      
-    if lengstr(1,33)==m.text and m.chat.id==admin_id:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addopr') for name in [lengstr(ll,19)]])                 
+            msg = bot.send_message(m.chat.id, lengstr(ll,18)+' '+str(len(dsa)),reply_markup=keyboard)      
+    if lengstr(ll,33)==m.text and m.chat.id==admin_id:
             dsa=all_oprosi()
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='stt'+str(dsa[i][0])) for name in [dsa[i][1]]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,35),reply_markup=keyboard) 	
-    if lengstr(1,16)==m.text and m.chat.id==admin_id:
+            msg = bot.send_message(m.chat.id, lengstr(ll,35),reply_markup=keyboard) 	
+    if lengstr(ll,16)==m.text and m.chat.id==admin_id:
             dsa=all_oprosi()
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='ras'+str(dsa[i][0])) for name in [dsa[i][1]]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,34),reply_markup=keyboard) 		
-    if lengstr(1,17)==m.text and m.chat.id==admin_id:
+            msg = bot.send_message(m.chat.id, lengstr(ll,34),reply_markup=keyboard) 		
+    if lengstr(ll,17)==m.text and m.chat.id==admin_id:
             dsa=all_groups()
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(dsa)):
                 keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='grp'+str(dsa[i][0])) for name in [dsa[i][1][:29]]])   
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addgroup') for name in [lengstr(1,44)]])                 
-            msg = bot.send_message(m.chat.id, lengstr(1,43),reply_markup=keyboard) 	  
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='addgroup') for name in [lengstr(ll,44)]])                 
+            msg = bot.send_message(m.chat.id, lengstr(ll,43),reply_markup=keyboard) 	  
     if new_group==2 and m.chat.id==admin_id:
             ngroup.tema=m.text 
             new_group=3			
-            msg = bot.send_message(m.chat.id, lengstr(1,46))
+            msg = bot.send_message(m.chat.id, lengstr(ll,46))
             return			
     if new_group==3 and m.chat.id==admin_id:
             if m.text.isdigit():			
                new_group=0	
                ngroup.time=m.text			   
                add_group(ngroup)			   
-               msg = bot.send_message(m.chat.id, lengstr(1,49))	
+               msg = bot.send_message(m.chat.id, lengstr(ll,49))	
             else:
-               msg = bot.send_message(m.chat.id, lengstr(1,48))
+               msg = bot.send_message(m.chat.id, lengstr(ll,48))
     if change_group!='' and m.chat.id==admin_id:
         lisd=change_group[0]
         grid=int(change_group[1:])
@@ -582,24 +766,24 @@ def name(m):
         if lisd=='z':
             if m.text.isdigit():
                 ch_zaderjku(grid,m.text)
-                msg = bot.send_message(m.chat.id, lengstr(1,51))
+                msg = bot.send_message(m.chat.id, lengstr(ll,51))
             else:
-                msg = bot.send_message(m.chat.id, lengstr(1,48))  
+                msg = bot.send_message(m.chat.id, lengstr(ll,48))  
         if lisd=='t':
                 ch_tema(grid,m.text)
-                msg = bot.send_message(m.chat.id, lengstr(1,51))	
+                msg = bot.send_message(m.chat.id, lengstr(ll,51))	
     print(m.text, admin_id, m.chat.id)
-    if m.text==lengstr(1,42) and m.chat.id==admin_id:
+    if m.text==lengstr(ll,42) and m.chat.id==admin_id:
             keyboard = types.InlineKeyboardMarkup(row_width=1)  
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciitext') for name in [lengstr(1,70)]])        
-            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciipass') for name in [lengstr(1,71)]])  			
-            msg = bot.send_message(m.chat.id, lengstr(1,69),reply_markup=keyboard) 	  
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciitext') for name in [lengstr(ll,70)]])        
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='opciipass') for name in [lengstr(ll,71)]])  			
+            msg = bot.send_message(m.chat.id, lengstr(ll,69),reply_markup=keyboard) 	  
     if what_change=='p' and m.chat.id==admin_id:
         change_pass(m.text)
         password=m.text	
         what_change=''		
-        msg = bot.send_message(m.chat.id, lengstr(1,73)) 
-    if m.text==lengstr(1,76) and m.chat.id==admin_id:
+        msg = bot.send_message(m.chat.id, lengstr(ll,73)) 
+    if m.text==lengstr(ll,76) and m.chat.id==admin_id:
             dialog=zagruzit_dialogi()
             print(len(dialog))
             dialog.reverse()
@@ -610,12 +794,164 @@ def name(m):
                 keyboard.add(types.InlineKeyboardButton(text=str(dialog[i][0])+' '+str(dialog[i][1]),callback_data='dialup'+str(dialog[i][0])+':'+str(dialog[i][1])))
             if len(dialog)>10:
                 keyboard.add(types.InlineKeyboardButton(text='>>',callback_data='dialognext'+str(1)))                			
-            msg = bot.send_message(m.chat.id, lengstr(1,77),reply_markup=keyboard) 
+            msg = bot.send_message(m.chat.id, lengstr(ll,77),reply_markup=keyboard) 
+    if m.text==lengstr(ll,86) and m.chat.id==admin_id:
+        keyboard = types.InlineKeyboardMarkup(row_width=1)  
+        opcii_smile=['','','','']
+        print(opcii_menu)
+        for i in range(0,4):
+            print(opcii_menu[i])
+            if opcii_menu[i]==1:
+                   opcii_smile[i]='✅'
+            else:
+                   opcii_smile[i]='❌'
+        print(opcii_smile)
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[0],callback_data='opcii_mnu1') for name in [lengstr(ll,82)]]) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[1],callback_data='opcii_mnu2') for name in [lengstr(ll,83)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[2],callback_data='opcii_mnu3') for name in [lengstr(ll,84)]])
+        keyboard.add(*[types.InlineKeyboardButton(text=name+' '+opcii_smile[3],callback_data='opcii_mnu4') for name in [lengstr(ll,85)]])
+        keyboard.add(types.InlineKeyboardButton(text='Оповестить всех пользователей',callback_data='all_users_say'))       
+        msg = bot.send_message(m.chat.id, lengstr(ll,86),reply_markup=keyboard) 
     return
 
+	
+	
+def all_users():
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM USERS_CL")
+    results = cursor.fetchall()
+    conn.close()
+    return(str(len(results)))	
+	
+def col_vo_zaprosov(tema):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ZAI WHERE TEMA=:id",{"id": tema})
+    results = cursor.fetchall()
+    conn.close()
+    return(str(len(results)))    
+    	
+	
+def find_leng(id):	
+    try:
+        conn = sqlite3.connect('RAZGOVORI.sqlite')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM LENGS WHERE USER_ID = :id",{"id": id})
+        res = cursor.fetchall()   
+        conn.close()
+        return(res[0][1])
+    except Exception:
+        return(1)	
+	
+def user_leng(id,gg):
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into LENGS values (:a1,:a2) ", {"a1": id,"a2": gg})
+    conn.commit()
+    conn.close()     	
+	
+def zaprosi_dunl(id,zp_id):		
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ZAI WHERE CL_ID=:id",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    text=results[zp_id][3]	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE ZAI SET TEXT = :txt WHERE CL_ID=:id AND TEXT = :text", {"id": id,"text": text, "txt": ''})
+    conn.commit()
+    conn.close() 
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM Thread WHERE CL_ID=:id AND TEXT = :text", {"id": id,"text": text})
+    conn.commit()
+    conn.close() 	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ALL_COD WHERE COD = :cod", {"cod": results[zp_id][1]})
+    conn.commit()
+    conn.close() 
+    mid=pickle.loads(results[zp_id][2])
+    m_id=mid[2]
+    ref=refund1()
+    dobavit_poi1(id,text,ref,m_id)
+    for i in range(0,len(mid[0])):
+        try:
+            msg = bot.delete_message(mid[0][i],mid[1][i])
+        except Exception:
+            aa=1
+	
+def clock2(id):
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM USERS_CL")
+    results = cursor.fetchall()
+    conn.close() 
+    print(len(results))	
+    for i in range(0,len(results)):
+        print(i)
+        if i % 15==0:
+            time.sleep(1)
+        if results[i][0]==id:
+            continue
+        ss1=results[i][0]
+        ll=find_leng(ss1)
+        wg=wh_h(results[i][0])
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        if wg==0:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
+        for i in range(0,4):
+            if opcii_menu[i]==1:
+                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+        if wg==1:
+            keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])   
+        print(i,ss1)			
+        msg=bot.send_message(ss1,lengstr(ll,98),reply_markup=keyboard)	
+    msg = bot.send_message(id,'Оповещение прошло успешно')	
+	
+	
+	
+	
+
+def poisk_otz(user_p):	
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM COMENT WHERE WHO = :id",{"id": user_p})
+    res = cursor.fetchall()   
+    conn.close()
+    return(res)
+
 
 	
-	
+def add_otz_bd(usrt,id,message_id):
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into COMENT values (:a1,:a2) ", {"a1": usrt,"a2": message_id})
+    conn.commit()
+    conn.close() 	
+
+def add_ww(id):
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("insert into WW values (:a1) ", {"a1": id})
+    conn.commit()
+    conn.close()  
+
+
+def wh_h(id):	
+    conn = sqlite3.connect('RAZGOVORI.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM WW WHERE USER_ID = :id",{"id": id})
+    res = cursor.fetchall()   
+    conn.close()
+    if len(res)>0:
+        return(1)
+    else:		
+        return(0)
+
 	
 def zagruzit_dialogi():
     conn = sqlite3.connect('RAZGOVORI.sqlite')
@@ -778,7 +1114,7 @@ def zaprosi_cl(id):
     conn.close()
     return(results)	
 	
-def dobavit_poi1(id,text,ref):
+def dobavit_poi1(id,text,ref,m_id):
     conn = sqlite3.connect('CONV.sqlite')
     cursor = conn.cursor()
     cursor.execute("SELECT TEMA FROM ZAI WHERE CL_ID=:id AND TEXT='' ",{"id": id})
@@ -795,7 +1131,7 @@ def dobavit_poi1(id,text,ref):
     for i in range(0,len(results)):
         if results[i][3]==0:
             send_array.append(results[i][0])
-            msg = bot.send_message(results[i][0],'Новый клиент\nОписание:\n'+text+'\n\nКод для связи с клиентом: '+ref)	
+            msg = bot.forward_message(chat_id=results[i][0],from_chat_id=id,message_id=m_id)	
             message_array.append(msg.message_id)	
         else:
             tt=int(time.time())
@@ -810,6 +1146,7 @@ def dobavit_poi1(id,text,ref):
     mid=[]
     mid.append(send_array)
     mid.append(message_array)
+    mid.append(m_id)
     mid = pickle.dumps(mid)
     conn = sqlite3.connect('CONV.sqlite')
     cursor = conn.cursor()
@@ -945,6 +1282,14 @@ def  add_vopros_opt(vopros,otvet,id) :
 def add_client(user_id):
     conn = sqlite3.connect('BD.sqlite')
     cursor = conn.cursor()
+    cursor.execute("SELECT * FROM USERS_CL")
+    results = cursor.fetchall()
+    conn.close()
+    for i in range(0,len(results)):
+        if results[i][0]==user_id:
+            return('hh')
+    conn = sqlite3.connect('BD.sqlite')
+    cursor = conn.cursor()
     cursor.execute("insert into USERS_CL values (:post_id) ", {"post_id": user_id})
     conn.commit()
     conn.close()
@@ -1054,10 +1399,12 @@ def clock(opr_id):
     for i in range(0,len(results)):
         if i % 15==0:
             time.sleep(1)
+        ss1=results[i][0]
+        ss2=results1[0][2]
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        otveti=pickle.loads(results1[i][2])  
+        otveti=pickle.loads(ss2)  
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='otv'+str(otveti.index(name))+':'+str(opr_id)+'†'+str(0)) for name in otveti])            		
-        msg=bot.send_message(results[i][0],lengstr(1,30)+'\n\n'+results1[0][1],reply_markup=keyboard)
+        msg=bot.send_message(ss1,lengstr(ll,30)+'\n\n'+results1[0][1],reply_markup=keyboard)
 
 
 
@@ -1093,7 +1440,7 @@ def   chek_next_question(user_id,bib,opr_id,vopros_id):
     conn.close()  
     vopros_id+=1
     if len(results1)==vopros_id:
-           msg = bot.edit_message_text(chat_id=user_id, message_id=bib, text=lengstr(1,31)) 	
+           msg = bot.edit_message_text(chat_id=user_id, message_id=bib, text=lengstr(ll,31)) 	
            return
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     otveti=pickle.loads(results1[vopros_id][2])  
@@ -1115,7 +1462,7 @@ def stat_opros(opr_id):
     conn.close()
     res=''
     if len(results1)==0:
-        res=lengstr(1,36)
+        res=lengstr(ll,36)
         return(res)
     for i in range(0,len(results2)):
             col_vo=len(pickle.loads(results1[i][3]))
@@ -1193,7 +1540,7 @@ def keyboard_for_filter(opr_id):
         keyboard.add(types.InlineKeyboardButton(text='Вопрос №'+str(i+1),callback_data='„'))
         otveti=pickle.loads(results2[i][0])
         keyboard.add(*[types.InlineKeyboardButton(text=fulter_emoji[i][otveti.index(name)]+' '+name,callback_data='ifm'+str(i)+':'+str(otveti.index(name))+'†'+str(opr_id)) for name in otveti])
-    keyboard.add(types.InlineKeyboardButton(text=lengstr(1,38),callback_data='txtras'))
+    keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,38),callback_data='txtras'))
     return(keyboard)	
 	
 	
@@ -1265,7 +1612,7 @@ def forserer():
     for i in range(0,len(results)):
             client_id=results[i][2]
             grid=results[i][3]
-            msg = bot.send_message(results[i][3],'Новый клиент\nОписание:\n'+results[i][0]+'\n\nКод для связи с клиентом: '+results[i][4])	
+            msg = bot.send_message(results[i][3],'Новый клиент\nОписание:\n'+results[i][0]+'\n\nКод для связи с клиентом: <a href="https://t.me/Fine2113_bot?start='+results[i][4]+'">'+results[i][4]+'</a>',parse_mode='HTML')	
             msid=msg.message_id	 
             conn = sqlite3.connect('CONV.sqlite')
             cursor = conn.cursor()
@@ -1313,8 +1660,8 @@ def photoget(message):
         wb1 = openpyxl.load_workbook(filename = 'leng.xlsx')
         sheet1 = wb1['test']
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(1,15),lengstr(1,16),lengstr(1,17),lengstr(1,33),lengstr(1,42)]])
-        msg = bot.send_message(message.chat.id, lengstr(1,73),reply_markup=keyboard) 
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,15),lengstr(ll,16),lengstr(ll,17),lengstr(ll,33),lengstr(ll,42)]])
+        msg = bot.send_message(message.chat.id, lengstr(ll,73),reply_markup=keyboard) 
 	
 bot.remove_webhook()
 
