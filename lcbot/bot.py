@@ -1,6 +1,5 @@
 ﻿import telebot
 import time
-import cherrypy
 import threading
 import datetime
 import copy
@@ -16,13 +15,15 @@ import urllib
 import random
 import sqlite3
 import openpyxl
-global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, opcii_menu, otz_g,add_otz,prs_otz
+global o_chat
+global inadmin, password, admin_id, oprcall, oprs, add_opr, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, opcii_menu, otz_g,add_otz,prs_otz, txtrassilkiua
 class group:
     id=0
     name=''
     tema=''
     time=0
-what_change=''	
+what_change=''
+txtrassilkiua=''	
 def chek_pass():
     conn = sqlite3.connect('CONV.sqlite')
     cursor = conn.cursor()
@@ -44,7 +45,8 @@ add_otz=[]
 add_vopros_admin=0
 oprcall=1
 add_opr=0
-otz_g=-1001252887434
+o_chat=-1001272606508
+otz_g=-1001206621069
 new_group=0
 inadmin=[]
 filter=[]
@@ -58,6 +60,7 @@ input = open('oprs.pkl', 'rb')
 oprs = pickle.load(input)
 input.close()
 print(admin_id)
+global wb, sheet
 wb = openpyxl.load_workbook(filename = 'leng.xlsx')
 sheet = wb['test']
 val = sheet.cell(row=1, column=1)
@@ -92,6 +95,7 @@ class WebhookServer(object):
             return ''
         else:
             raise cherrypy.HTTPError(403)
+
 # Handle '/start' and '/help'
 
 
@@ -106,15 +110,17 @@ def start(message):
     sg=''
     sg=add_client(message.chat.id)
     wg=wh_h(message.chat.id)
+    rir=[]
     if sg=='hh':
         ll=find_leng(message.chat.id)
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard = types.ReplyKeyboardMarkup(row_width=2)
         if wg==0:
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
         for i in range(0,4):
             if opcii_menu[i]==1:
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+                rir.append(lengstr(ll,82+i))
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in rir])
         if wg==1:
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
         msg = bot.send_message(message.chat.id, lengstr(ll,7),reply_markup=keyboard) 
@@ -159,6 +165,7 @@ def userchan(m):
 @bot.message_handler(commands=['chat_id'])	
 def chat_idr(m):
     global new_group, ngroup, admin_id
+    ll=find_leng(admin_id)
     if new_group==1 and m.from_user.id==admin_id:
         try:
             ngroup.id=m.chat.id  
@@ -397,7 +404,7 @@ def inline(c):
         keyboard.add(types.InlineKeyboardButton(text='Изменить задержку',callback_data='gzadr'+str(zcf[0])),
                     types.InlineKeyboardButton(text='Изменить тему',callback_data='gtema'+str(zcf[0])),
                     types.InlineKeyboardButton(text='Удалить группу',callback_data='gdelt'+str(zcf[0])))	
-        msg = bot.send_message(c.message.chat.id, 'Id: '+str(zcf[0])+'\nНазвание: '+zcf[1]+'\nТема: '+zcf[2]+'\nЗадержка: '+str(zcf[3]),reply_markup=keyboard)     
+        msg = bot.send_message(c.message.chat.id, 'Id: '+str(zcf[0])+'\nНазвание: '+zcf[1]+'\nТема: '+zcf[2]+'\nТема на украинском: '+str(zcf[3]),reply_markup=keyboard)     
     if 'gzadr' in c.data:
         change_group='z'+c.data[5:]
         keyboard = types.InlineKeyboardMarkup(row_width=1)	
@@ -419,7 +426,19 @@ def inline(c):
         tema=c.data[5:]
         dobavit_poi(c.message.chat.id,tema)	
         add_poi.append(c.message.chat.id)
-        msg=  bot.send_message(c.message.chat.id, lengstr(ll,57)) 	
+        ss3=korotki(tema,ll)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)	
+        keyboard.add(types.InlineKeyboardButton(text=lengstr(ll,101),callback_data='netpoi')) 
+        msg=  bot.send_message(c.message.chat.id, ss3+'\n\n'+lengstr(ll,57),reply_markup=keyboard) 
+########################### Otmena poiska
+    if 'netpoi'==c.data:
+            add_poi.remove(c.message.chat.id)
+            del_poi(c.message.chat.id,tema)
+            temi=groups_tems(ll)
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            for i in range(0,len(temi)):
+                keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='poisk'+str(name)) for name in [temi[i][0]]])                 
+            msg = bot.send_message(c.message.chat.id, lengstr(ll,55),reply_markup=keyboard) 		
     if 'zaprs' in c.data:
         zp_id=int(c.data[5:])
         zaprosi=zaprosi_cl(c.message.chat.id)
@@ -439,6 +458,10 @@ def inline(c):
         zp_id=int(c.data[5:])
         zaprosi=zaprosi_delete(c.message.chat.id,zp_id)	
         msg=  bot.send_message(c.message.chat.id, lengstr(ll,61)) 
+    if 'zpobc' in c.data:
+        zp_id=int(c.data[5:])
+        zaprosi=zaprosi_obsh(c.message.chat.id,zp_id)	
+        msg=  bot.send_message(c.message.chat.id, lengstr(ll,109)) 
     if 'zpdubl' in c.data:
         zp_id=int(c.data[6:])
         zaprosi=zaprosi_dunl(c.message.chat.id,zp_id)	
@@ -531,7 +554,7 @@ def inline(c):
 		
 		
 def name(m):
-    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password, opcii_menu, otz_g
+    global admin_id, add_opr, oprs, work_with_opr, add_vopros_admin, filter,txtrassilki, new_group, ngroup, change_group,add_poi, vvod_koda, what_change, password, opcii_menu, otz_g, txtrassilkiua
     razgovori=from_us()
     ll=find_leng(m.chat.id)
     print(m)
@@ -552,15 +575,19 @@ def name(m):
         add_otz.remove(m.chat.id)
         msg =bot.forward_message(otz_g,m.chat.id, m.message_id)
         add_otz_bd(usrt,m.chat.id, msg.message_id)
-        msg = bot.send_message(m.chat.id, lengstr(ll,97))
+        msg = bot.send_message(m.chat.id, lengstr(ll,94))
     if m.chat.id in prs_otz:
         user_p=m.text.lower()
         solv=poisk_otz(user_p)
         if len(solv)==0:
-            msg=bot.send_message(m.chat.id, lengstr(ll,94))
+            msg=bot.send_message(m.chat.id, lengstr(ll,97))
         else:
             for i in range(0,len(solv)):
-                msg = bot.forward_message(m.chat.id,otz_g,solv[i][1])
+                try:
+                    msg = bot.forward_message(m.chat.id,otz_g,solv[i][1])
+                except Exception:
+                    continue
+            msg =bot.send_message(m.chat.id, lengstr(ll,106)) 
         prs_otz.remove(m.chat.id)
     if m.chat.id in razgovori:
         sdfg=m.text
@@ -611,21 +638,22 @@ def name(m):
         add_ww(m.chat.id)
         wg=wh_h(m.chat.id)
         print(wg)
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard = types.ReplyKeyboardMarkup(row_width=2)
         if wg==0:
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])            
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,8),lengstr(ll,81)]])
         for i in range(0,4):
             if opcii_menu[i]==1:
-                keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,82+i)]])
+                rir.append(lengstr(ll,82+i))
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in rir])
         if wg==1:
             keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,80)]])
         msg = bot.send_message(m.chat.id, lengstr(ll,87),reply_markup=keyboard) 
     if m.text==lengstr(ll,81):
         keyboard = types.InlineKeyboardMarkup()
-        url_button = types.InlineKeyboardButton(text=lengstr(ll,103), url="https://t.me/LC_bot_test")
+        url_button = types.InlineKeyboardButton(text=lengstr(ll,103), url="https://t.me/joinchat/BEYzx0W9A5PZ7kKcuJf4lQ")
         keyboard.add(url_button)
-        bot.send_message(m.chat.id, lengstr(ll,103), reply_markup=keyboard)
+        bot.send_message(m.chat.id, lengstr(ll,103)+'\nhttps://t.me/joinchat/BEYzx0W9A5PZ7kKcuJf4lQ', reply_markup=keyboard)
 ######################### otzivi
     if m.text==lengstr(ll,82):
         keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -636,9 +664,9 @@ def name(m):
         msg = bot.send_message(m.chat.id, lengstr(ll,89))	
     if m.text==lengstr(ll,84):
         keyboard = types.InlineKeyboardMarkup()
-        url_button = types.InlineKeyboardButton(text=lengstr(ll,104), url="https://t.me/LC_bot_test")
+        url_button = types.InlineKeyboardButton(text=lengstr(ll,104), url="https://t.me/joinchat/AAAAAE8flyT-eP3R9_-DpA")
         keyboard.add(url_button)
-        bot.send_message(m.chat.id, lengstr(ll,104), reply_markup=keyboard)
+        bot.send_message(m.chat.id, lengstr(ll,104)+'\nhttps://t.me/joinchat/AAAAAE8flyT-eP3R9_-DpA')
 ######################## nastroika zaprosov
     if m.text==lengstr(ll,85):
             zaprosi=zaprosi_cl(m.chat.id)
@@ -648,7 +676,7 @@ def name(m):
             msg = bot.send_message(m.chat.id, lengstr(ll,58),reply_markup=keyboard)
 ##########################
     if m.text==lengstr(ll,8):
-            temi=groups_tems()
+            temi=groups_tems(ll)
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             for i in range(0,len(temi)):
                 keyboard.add(*[types.InlineKeyboardButton(text=str(name),callback_data='poisk'+str(name)) for name in [temi[i][0]]])                 
@@ -688,12 +716,20 @@ def name(m):
         msg = bot.send_message(m.chat.id, zz,reply_markup=keyboard) 
         return
 ######################### rassilka texta po filtram oprosa
-    if txtrassilki==1:
+    if txtrassilkiua==1 and m.chat.id==admin_id:
+        txtrassilkiua=m.text
+        print(filter,txtrassilkiua,work_with_opr)
+        rassilka_po_filtru(txtrassilki,work_with_opr,txtrassilkiua)
+        txtrassilkiua=''
+        txtrassilki=''
+        return
+    if txtrassilki==1 and m.chat.id==admin_id:
         txtrassilki=m.text
         print(filter,txtrassilki,work_with_opr)
-        rassilka_po_filtru(m.text,work_with_opr)
-        txtrassilki=''
-
+        #rassilka_po_filtru(m.text,work_with_opr)
+        txtrassilkiua=1
+        msg = bot.send_message(m.chat.id,lengstr(ll,105)) 
+        return
 #######################
  
     if add_opr==1 and m.chat.id==admin_id:
@@ -751,14 +787,21 @@ def name(m):
             new_group=3			
             msg = bot.send_message(m.chat.id, lengstr(ll,46))
             return			
-    if new_group==3 and m.chat.id==admin_id:
-            if m.text.isdigit():			
+    if new_group==3 and m.chat.id==admin_id:			
+               new_group=4	
+               ngroup.time=m.text			   			   
+               msg = bot.send_message(m.chat.id, lengstr(ll,107))	
+               return
+    if new_group==4 and m.chat.id==admin_id:			
+               new_group=5	
+               ngroup.opisanie=m.text			   			   
+               msg = bot.send_message(m.chat.id, lengstr(ll,108))	
+               return
+    if new_group==5 and m.chat.id==admin_id:			
                new_group=0	
-               ngroup.time=m.text			   
+               ngroup.opisanieua=m.text			   
                add_group(ngroup)			   
-               msg = bot.send_message(m.chat.id, lengstr(ll,49))	
-            else:
-               msg = bot.send_message(m.chat.id, lengstr(ll,48))
+               msg = bot.send_message(m.chat.id, lengstr(ll,49))
     if change_group!='' and m.chat.id==admin_id:
         lisd=change_group[0]
         grid=int(change_group[1:])
@@ -815,6 +858,24 @@ def name(m):
     return
 
 	
+def del_poi(id,tema):	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ZAI WHERE CL_ID=:id AND TEXT='' ",{"id": id})
+    conn.commit()
+    conn.close()	
+	
+def korotki(tema,ll):	
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM GROUPS WHERE TEMA =:id OR TIME =:id",{"id": tema})
+    results = cursor.fetchall()
+    conn.close() 
+    if ll==1:
+        return(results[0][4])
+    else:
+        return(results[0][5])
+
 	
 def all_users():
     conn = sqlite3.connect('BD.sqlite')
@@ -850,6 +911,18 @@ def user_leng(id,gg):
     cursor.execute("insert into LENGS values (:a1,:a2) ", {"a1": id,"a2": gg})
     conn.commit()
     conn.close()     	
+
+
+def zaprosi_obsh(id,zp_id):
+    conn = sqlite3.connect('CONV.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ZAI WHERE CL_ID=:id",{"id": id})
+    results = cursor.fetchall()
+    conn.close()
+    text=results[zp_id][3]	
+    mid=pickle.loads(results[zp_id][2])
+    m_id=mid[2]
+    msg = bot.forward_message(o_chat,id,m_id)
 	
 def zaprosi_dunl(id,zp_id):		
     conn = sqlite3.connect('CONV.sqlite')
@@ -1123,24 +1196,15 @@ def dobavit_poi1(id,text,ref,m_id):
     tema=results[0][0]
     conn = sqlite3.connect('CONV.sqlite')
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM GROUPS WHERE TEMA =:id",{"id": tema})
+    cursor.execute("SELECT * FROM GROUPS WHERE TEMA =:id OR TIME =:id",{"id": tema})
     results = cursor.fetchall()
     conn.close() 
     send_array=[]
     message_array=[]
     for i in range(0,len(results)):
-        if results[i][3]==0:
             send_array.append(results[i][0])
             msg = bot.forward_message(chat_id=results[i][0],from_chat_id=id,message_id=m_id)	
-            message_array.append(msg.message_id)	
-        else:
-            tt=int(time.time())
-            tt=tt+(results[i][3]*3600)
-            conn = sqlite3.connect('CONV.sqlite')
-            cursor = conn.cursor()
-            cursor.execute("insert into Thread values (:a1, :a2, :a3, :a4, :a5) ", {"a1": text,"a2": tt,"a3": id, "a4":results[i][0],"a5": ref})
-            conn.commit()
-            conn.close()            			
+            message_array.append(msg.message_id)	          			
     print(send_array)
     print(message_array)
     mid=[]
@@ -1182,15 +1246,23 @@ def   dobavit_poi(id,tema):
     conn.close() 
 	
 	
-def groups_tems():	
-    conn = sqlite3.connect('CONV.sqlite')
-    cursor = conn.cursor()
-    cursor.execute("SELECT TEMA FROM GROUPS")
-    results = cursor.fetchall()
-    conn.close()
-    zz=list(set(results))
-    return(zz)   
-
+def groups_tems(ln):	
+    if ln==1:
+     conn = sqlite3.connect('CONV.sqlite')
+     cursor = conn.cursor()
+     cursor.execute("SELECT TEMA FROM GROUPS")
+     results = cursor.fetchall()
+     conn.close()
+     zz=list(set(results))
+     return(zz)  
+    else:	 
+     conn = sqlite3.connect('CONV.sqlite')
+     cursor = conn.cursor()
+     cursor.execute("SELECT TIME FROM GROUPS")
+     results = cursor.fetchall()
+     conn.close()
+     zz=list(set(results))
+     return(zz)  
 
 
 	
@@ -1228,7 +1300,7 @@ def chek_group(id):
 def add_group(grou):
     conn = sqlite3.connect('CONV.sqlite')
     cursor = conn.cursor()
-    cursor.execute("insert into GROUPS values (:a1, :a2, :a3, :a4) ", {"a1": grou.id,"a2": grou.name,"a3": grou.tema,"a4": grou.time,})
+    cursor.execute("insert into GROUPS values (:a1, :a2, :a3, :a4, :a5, :a6) ", {"a1": grou.id,"a2": grou.name,"a3": grou.tema,"a4": grou.time,"a5": grou.opisanie,"a6": grou.opisanieua})
     conn.commit()
     conn.close()    	
 	
@@ -1402,7 +1474,8 @@ def clock(opr_id):
         ss1=results[i][0]
         ss2=results1[0][2]
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        otveti=pickle.loads(ss2)  
+        otveti=pickle.loads(ss2)
+        ll=find_leng(ss1)		
         keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data='otv'+str(otveti.index(name))+':'+str(opr_id)+'†'+str(0)) for name in otveti])            		
         msg=bot.send_message(ss1,lengstr(ll,30)+'\n\n'+results1[0][1],reply_markup=keyboard)
 
@@ -1535,7 +1608,7 @@ def keyboard_for_filter(opr_id):
     cursor.execute("SELECT OTVETI FROM VOPROSI WHERE OPROS_ID=:id", {"id": opr_id})
     results2 = cursor.fetchall()
     conn.close() 
-
+    ll=find_leng(admin_id)
     for i in range(0,len(results1)):
         keyboard.add(types.InlineKeyboardButton(text='Вопрос №'+str(i+1),callback_data='„'))
         otveti=pickle.loads(results2[i][0])
@@ -1544,7 +1617,7 @@ def keyboard_for_filter(opr_id):
     return(keyboard)	
 	
 	
-def  rassilka_po_filtru(txt,opr_id):
+def  rassilka_po_filtru(txt,opr_id,txtua):
     global filter	
     conn = sqlite3.connect('BD.sqlite')
     cursor = conn.cursor()
@@ -1578,7 +1651,7 @@ def  rassilka_po_filtru(txt,opr_id):
             except Exception:
              continue			
     print(users_big)
-    t = threading.Thread(target=clock1, args=(txt,users_big))
+    t = threading.Thread(target=clock1, args=(txt,users_big,txtua))
     t.start()
  
 
@@ -1591,11 +1664,15 @@ def all_groups():
     conn.close() 
     return(results)    
       	
-def clock1(txt,arr):
+def clock1(txt,arr,txtua):
     for i in range(0,len(arr)):
         if i % 15==0:
-            time.sleep(1)          		
-        msg=bot.send_message(arr[i],txt)
+            time.sleep(1)  
+        ll=find_leng(arr[i])
+        if ll==1:		
+            msg=bot.send_message(arr[i],txt)
+        if ll==2:		
+            msg=bot.send_message(arr[i],txtua)
 	
 	
 def forserer():
@@ -1650,6 +1727,7 @@ def photoget(message):
     global wb, wb1, sheet, sheet1, what_change, admin_id
     if what_change=='t'	and message.chat.id==admin_id:
         what_change=''
+        ll=find_leng(admin_id)
         fileid=(message.document.file_id)
         bb=bot.get_file(fileid)
         bb=bb.file_path
@@ -1657,11 +1735,12 @@ def photoget(message):
         f = open('leng.xlsx', "wb")
         f.write(logo)
         f.close()
-        wb1 = openpyxl.load_workbook(filename = 'leng.xlsx')
-        sheet1 = wb1['test']
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,15),lengstr(ll,16),lengstr(ll,17),lengstr(ll,33),lengstr(ll,42)]])
+        wb = openpyxl.load_workbook(filename = 'leng.xlsx')
+        sheet = wb['test']
+        keyboard = types.ReplyKeyboardMarkup(row_width=2)
+        keyboard.add(*[types.InlineKeyboardButton(text=name,callback_data=name) for name in [lengstr(ll,15),lengstr(ll,16),lengstr(ll,17),lengstr(ll,33),lengstr(ll,42),lengstr(ll,86)]])
         msg = bot.send_message(message.chat.id, lengstr(ll,73),reply_markup=keyboard) 
+	
 	
 bot.remove_webhook()
 
